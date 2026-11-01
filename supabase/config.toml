@@ -1,0 +1,13 @@
+project_id = "ypcziwlehjbmqohrsvzo"
+
+[functions.seed-staff]
+verify_jwt = false
+
+[functions.seed-test-patient]
+verify_jwt = false
+
+[functions.lifestyle-ai]
+verify_jwt = false
+
+[functions.bootstrap-admin]
+verify_jwt = true

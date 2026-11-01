@@ -1,0 +1,33 @@
+{
+  "name": "Trika Health",
+  "short_name": "Trika",
+  "description": "Digital healthcare ecosystem for hospitals, clinicians and patients.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0d9488",
+  "categories": ["medical", "health", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My consultations",
+      "short_name": "Consultations",
+      "url": "/patient"
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "url": "/dashboard"
+    }
+  ]
+}

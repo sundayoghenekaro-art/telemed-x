@@ -1,0 +1,45 @@
+{
+  "projectId": "63962358",
+  "functions": {
+    "bootstrap-admin": {
+      "hasChanged": false,
+      "hash": "0705bc5d82841e916789604fcfdcf5360c51ab7a5532c1dcc7ad132e515c9f37"
+    },
+    "clinical-assistant": {
+      "hasChanged": false,
+      "hash": "2ea66527e68058e309d7388ffa09a21dfb41e21238c1b3eb97a5ec740041664d"
+    },
+    "create-staff-account": {
+      "hasChanged": false,
+      "hash": "b331f8a514fef4e6636993464f9f23961a9379520b2f6eb3976ad3ad85fd2b17"
+    },
+    "daily-video": {
+      "hasChanged": false,
+      "hash": "6dba778f39de82107411403310ab3c77dc771ece866e497341162f412fe09a27"
+    },
+    "lifestyle-ai": {
+      "hasChanged": false,
+      "hash": "b6fdbeeba126114fff89d8237b26cee899f973eeef05efb4cca9b08da3d45f1a"
+    },
+    "list-staff": {
+      "hasChanged": false,
+      "hash": "022b71c46a02214ea5391be5cf0e2b786977750d51aaa731ec251327f20632b8"
+    },
+    "seed-staff": {
+      "hasChanged": false,
+      "hash": "12ade5954903db56a73f7b5c74a9496ab5678ef059d0aab091a0bd601b72c4ea"
+    },
+    "seed-test-patient": {
+      "hasChanged": false,
+      "hash": "0699e085cea3ccf481b696ad34d39f8a678d6139f1a3f9fc3dc98266c93b739c"
+    },
+    "send-notifications": {
+      "hasChanged": false,
+      "hash": "db527428489003fa83886409f226d64a8212122cc534bdc935ecb8b9d2f001e4"
+    },
+    "send-vitals-report": {
+      "hasChanged": false,
+      "hash": "f047c527e76fe1eccea9301b9ec37f0c3e61fe5415adc40c2e2748616febad66"
+    }
+  }
+}

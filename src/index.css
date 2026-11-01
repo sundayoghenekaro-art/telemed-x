@@ -1,0 +1,506 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Work+Sans:wght@400;500;600;700&family=Inconsolata:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* DHOS - Digital Health Operating System Design System
+   A medical-grade, professional healthcare interface */
+
+@layer base {
+  :root {
+    /* Trika Health palette: sky blue, fresh green, and clinical slate */
+    --background: 210 30% 98%;
+    --foreground: 214 33% 17%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 214 33% 17%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 214 33% 17%;
+
+    /* Primary - Trika blue */
+    --primary: 202 57% 54%;
+    --primary-foreground: 0 0% 100%;
+    /* Accessible variant of primary for text on light surfaces (6.1:1 on white) */
+    --primary-strong: 202 70% 34%;
+
+    /* Secondary - Trika slate */
+    --secondary: 210 13% 69%;
+    --secondary-foreground: 214 33% 17%;
+
+    /* Muted - cool blue-gray surfaces */
+    --muted: 210 24% 93%;
+    --muted-foreground: 214 16% 42%;
+
+    /* Accent - Trika green */
+    --accent: 141 39% 92%;
+    --accent-foreground: 145 42% 30%;
+
+    /* Status Colors */
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 85% 97%;
+
+    --success: 141 39% 54%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 202 57% 54%;
+    --info-foreground: 0 0% 100%;
+
+    /* Clinical Status */
+    --critical: 0 72% 51%;
+    --stable: 160 84% 39%;
+    --monitoring: 38 92% 50%;
+
+    /* Borders & Inputs */
+    --border: 0 0% 83%;
+    --input: 0 0% 83%;
+    --ring: 202 57% 54%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar */
+    --sidebar-background: 214 33% 17%;
+    --sidebar-foreground: 210 24% 93%;
+    --sidebar-primary: 202 57% 54%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 28% 24%;
+    --sidebar-accent-foreground: 210 24% 98%;
+    --sidebar-border: 214 24% 27%;
+    --sidebar-ring: 202 57% 54%;
+
+    /* Trika Health gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(202 57% 54%), hsl(141 39% 54%));
+    --gradient-hero: linear-gradient(145deg, hsl(214 33% 17%), hsl(204 40% 25%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 30% 98%));
+    --gradient-accent: linear-gradient(135deg, hsl(202 57% 54%), hsl(141 39% 54%));
+
+    /* Telemed-X uses the same Trika Health identity */
+    --telemedx-primary: 202 57% 54%;
+    --telemedx-primary-light: 202 70% 68%;
+    --telemedx-accent: 141 39% 54%;
+    --telemedx-bg: 214 33% 12%;
+    --telemedx-card: 214 28% 17%;
+    --telemedx-card-foreground: 210 24% 95%;
+    --telemedx-border: 214 24% 28%;
+    --telemedx-muted: 214 28% 22%;
+    --telemedx-muted-foreground: 210 14% 68%;
+    --gradient-telemedx: linear-gradient(135deg, hsl(202 57% 54%), hsl(141 39% 54%));
+    --gradient-telemedx-hero: linear-gradient(145deg, hsl(214 33% 12%), hsl(204 38% 20%), hsl(214 33% 14%));
+    --gradient-telemedx-card: linear-gradient(145deg, hsl(214 28% 18%), hsl(214 28% 14%));
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-glow: 0 0 20px hsl(195 80% 35% / 0.3);
+    --chart-1: 158 64% 51%;
+    --chart-2: 141 69% 58%;
+    --chart-3: 172 66% 50%;
+    --chart-4: 82 77% 55%;
+    --chart-5: 0 0% 45%;
+    --sidebar: 0 0% 98%;
+    --font-sans: 'Work Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-serif: 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-mono: 'Inconsolata', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+  }
+
+  .dark {
+    --background: 214 33% 10%;
+    --foreground: 210 24% 96%;
+
+    --card: 214 28% 15%;
+    --card-foreground: 210 24% 96%;
+
+    --popover: 214 28% 18%;
+    --popover-foreground: 210 24% 96%;
+
+    --primary: 202 70% 64%;
+    --primary-foreground: 214 33% 12%;
+    --primary-strong: 202 70% 74%;
+
+    --secondary: 210 13% 42%;
+    --secondary-foreground: 210 24% 96%;
+
+    --muted: 214 24% 23%;
+    --muted-foreground: 210 14% 72%;
+
+    --accent: 141 32% 20%;
+    --accent-foreground: 141 48% 72%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 85% 97%;
+
+    --border: 214 24% 29%;
+    --input: 214 24% 29%;
+    --ring: 202 70% 64%;
+
+    --sidebar-background: 215 20% 16%;
+    --sidebar-foreground: 210 10% 85%;
+    --sidebar-primary: 202 70% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 22%;
+    --sidebar-accent-foreground: 210 10% 90%;
+    --sidebar-border: 215 15% 25%;
+    --sidebar-ring: 202 70% 64%;
+    --chart-1: 156 71% 66%;
+    --chart-2: 141 76% 73%;
+    --chart-3: 170 76% 64%;
+    --chart-4: 81 84% 67%;
+    --chart-5: 0 0% 45%;
+    --sidebar: 0 0% 14%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.22);
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Monospace for medical codes, IDs */
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer components {
+  /* Medical Card Styles */
+  .card-medical {
+    @apply bg-card rounded-xl border border-border;
+    box-shadow: var(--shadow-md);
+  }
+
+  .card-medical-elevated {
+    @apply bg-card rounded-xl border border-border;
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Status Badges */
+  .status-critical {
+    @apply bg-destructive/10 text-destructive border border-destructive/20;
+  }
+
+  .status-stable {
+    @apply bg-success/10 text-success border border-success/20;
+  }
+
+  .status-monitoring {
+    @apply bg-warning/10 text-warning border border-warning/20;
+  }
+
+  /* Healthcare Button Variants */
+  .btn-medical {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+
+  .btn-medical-primary {
+    @apply btn-medical bg-primary text-primary-foreground hover:bg-primary/90;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-medical-primary:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Glassmorphism for overlays */
+  .glass {
+    @apply bg-background/80 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Pulse animation for live indicators */
+  .pulse-live {
+    animation: pulse-ring 2s ease-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Smooth page transitions */
+  .page-transition {
+    animation: fadeSlideIn 0.3s ease-out;
+  }
+
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Data grid styling */
+  .data-grid {
+    @apply divide-y divide-border;
+  }
+
+  .data-grid-row {
+    @apply flex items-center py-3 px-4 hover:bg-muted/50 transition-colors;
+  }
+
+  /* UPID display styling */
+  .upid-display {
+    @apply font-mono text-sm tracking-wider bg-muted px-2 py-1 rounded;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Text gradient utility */
+  .text-gradient-primary {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Scroll-triggered reveal (paired with useInView / Reveal) */
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Entrance animation for route content */
+  .page-enter {
+    animation: page-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-float-slow {
+    animation: float-slow 9s ease-in-out infinite;
+  }
+
+  .animate-float-slower {
+    animation: float-slow 13s ease-in-out infinite reverse;
+  }
+
+  @keyframes float-slow {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -14px, 0);
+    }
+  }
+
+  .animate-aurora {
+    animation: aurora 22s ease-in-out infinite alternate;
+  }
+
+  @keyframes aurora {
+    0% {
+      transform: translate3d(-4%, -2%, 0) scale(1);
+      opacity: 0.75;
+    }
+    50% {
+      transform: translate3d(3%, 4%, 0) scale(1.12);
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(6%, -3%, 0) scale(1.04);
+      opacity: 0.8;
+    }
+  }
+
+  .animate-gradient-pan {
+    background-size: 200% 200%;
+    animation: gradient-pan 9s ease infinite;
+  }
+
+  @keyframes gradient-pan {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee 42s linear infinite;
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--foreground) / 0.06),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -50% 0;
+    }
+  }
+
+  .hover-lift {
+    transition:
+      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.35s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-grid-faint {
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .bg-grid-dark {
+    background-image:
+      linear-gradient(rgba(148, 197, 219, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 197, 219, 0.07) 1px, transparent 1px);
+    background-size: 52px 52px;
+  }
+
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px hsl(var(--foreground) / 0.04),
+      0 12px 32px -12px hsl(var(--foreground) / 0.18);
+  }
+
+  .shadow-float {
+    box-shadow:
+      0 2px 6px hsl(var(--foreground) / 0.05),
+      0 24px 60px -20px hsl(var(--foreground) / 0.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
