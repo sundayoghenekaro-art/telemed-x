@@ -40,3 +40,5 @@ keys
 
 .vercel
 .env*
+supabase/.temp/
+
