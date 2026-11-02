@@ -664,6 +664,7 @@ function AppRoutes({
               <Route path="/hospitals" element={<SuperAdminHospitalsPage />} />
               <Route path="/vendors" element={<SuperAdminVendorsPage />} />
               <Route path="/settings" element={<SettingsPage canManage={canPerformAction(currentUser.role, 'action:manage_staff')} />} />
+              <Route path="/staff" element={<UserManagement />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
             </ProtectedRoute>

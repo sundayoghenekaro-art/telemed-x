@@ -26,6 +26,7 @@ import {
   Activity,
   Shield,
   Gauge,
+  UserPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +58,7 @@ const navItems = [
   { path: '/messages', icon: MessageSquare, label: 'Messages' },
   { path: '/hospitals', icon: Building2, label: 'Hospitals' },
   { path: '/vendors', icon: Building2, label: 'Vendors' },
+  { path: '/staff', icon: UserPlus, label: 'Staff accounts' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -64,7 +66,7 @@ const navGroups = [
   { label: 'Overview', paths: ['/dashboard'] },
   { label: 'Care delivery', paths: ['/patients', '/appointments', '/clinical', '/inpatient', '/telemedicine', '/monitoring'] },
   { label: 'Diagnostics', paths: ['/laboratory', '/pharmacy', '/radiology'] },
-  { label: 'Administration', paths: ['/billing', '/operations', '/credentials', '/messages'] },
+  { label: 'Administration', paths: ['/billing', '/operations', '/credentials', '/messages', '/staff'] },
   { label: 'Network', paths: ['/hospitals', '/vendors'] },
   { label: 'System', paths: ['/settings'] },
 ];

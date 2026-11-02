@@ -29,7 +29,8 @@ export type ScreenPermission =
   | 'screen:hospitals'
   | 'screen:vendors'
   | 'screen:operations'
-  | 'screen:settings';
+  | 'screen:settings'
+  | 'screen:staff';
 
 export type WidgetPermission =
   | 'widget:hospital_stats'
@@ -86,6 +87,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'screen:vendors',
   'screen:operations',
   'screen:settings',
+  'screen:staff',
   'widget:hospital_stats',
   'widget:inpatient_stats',
   'widget:bed_occupancy',
@@ -304,6 +306,7 @@ export const ROUTE_PERMISSION: Record<string, ScreenPermission> = {
   '/vendors': 'screen:vendors',
   '/operations': 'screen:operations',
   '/settings': 'screen:settings',
+  '/staff': 'screen:staff',
 };
 
 const ROUTE_LABEL: Record<string, string> = {
@@ -324,6 +327,7 @@ const ROUTE_LABEL: Record<string, string> = {
   '/vendors': 'Vendors',
   '/operations': 'Operations',
   '/settings': 'Settings',
+  '/staff': 'Staff accounts',
 };
 
 export function routeLabelFor(pathname: string): string | undefined {
