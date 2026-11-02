@@ -151,6 +151,30 @@ function errorFromStatus(status: number | null): AiError {
   }
 }
 
+const PROVIDER_KEY_REJECTED =
+  'The AI provider rejected the stored key. An administrator must replace OPENAI_API_KEY; retrying will not help.';
+
+/**
+ * The provider code is more specific than the HTTP status: a revoked key and
+ * an upstream outage both arrive as 502, but only one is worth retrying.
+ */
+export function mapProviderError(code: string | null, status: number | null): AiError {
+  if (code === 'provider_auth_failed') return new AiError('provider_error', PROVIDER_KEY_REJECTED);
+  if (code === 'provider_credits_exhausted') return errorFromStatus(402);
+  if (code === 'provider_not_configured') return errorFromStatus(503);
+  return errorFromStatus(status);
+}
+
+async function errorCodeFrom(error: unknown): Promise<string | null> {
+  const context = (error as { context?: Response } | null)?.context;
+  if (!context || typeof context.clone !== 'function') return null;
+  const body = (await context
+    .clone()
+    .json()
+    .catch(() => null)) as { error?: unknown } | null;
+  return typeof body?.error === 'string' ? body.error : null;
+}
+
 async function postDev<T>(payload: unknown): Promise<T> {
   let response: Response;
   try {
@@ -165,13 +189,7 @@ async function postDev<T>(payload: unknown): Promise<T> {
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { error?: string } | null;
-    const error = errorFromStatus(response.status);
-    if (body?.error === 'provider_auth_failed') {
-      return Promise.reject(
-        new AiError('provider_error', 'The AI provider rejected the server key. An administrator must check OPENAI_API_KEY.'),
-      );
-    }
-    return Promise.reject(error);
+    return Promise.reject(mapProviderError(body?.error ?? null, response.status));
   }
 
   return (await response.json()) as T;
@@ -179,7 +197,7 @@ async function postDev<T>(payload: unknown): Promise<T> {
 
 async function postFunction<T>(payload: unknown): Promise<T> {
   const { data, error } = await supabase.functions.invoke(AI_FUNCTION, { body: payload });
-  if (error) throw errorFromStatus(httpStatus(error));
+  if (error) throw mapProviderError(await errorCodeFrom(error), httpStatus(error));
   return data as T;
 }
 
