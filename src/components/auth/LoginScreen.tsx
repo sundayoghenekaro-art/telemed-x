@@ -421,15 +421,22 @@ export function LoginScreen({ onLogin, onDemoLogin }: LoginScreenProps) {
               )}
             </Button>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="h-11 w-full rounded-xl gap-2 border-border bg-card text-sm"
-            >
-              <Fingerprint className="h-4 w-4 text-primary-strong" />
-              Sign in with biometrics
-            </Button>
+            <div className="space-y-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled
+                aria-describedby="biometric-status"
+                className="h-11 w-full rounded-xl gap-2 border-border bg-card text-sm"
+              >
+                <Fingerprint className="h-4 w-4 text-primary-strong" />
+                Sign in with biometrics
+              </Button>
+              <p id="biometric-status" className="text-center text-[11px] text-muted-foreground">
+                Not configured on this deployment — passkeys are not enabled, so staff sign in with email and password.
+              </p>
+            </div>
 
             <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
               <span className="h-px flex-1 bg-border" />

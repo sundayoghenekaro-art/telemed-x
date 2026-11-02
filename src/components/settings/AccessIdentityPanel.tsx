@@ -213,7 +213,7 @@ export function AccessIdentityPanel({ canManage = false }: { canManage?: boolean
               </div>
               <p className="mt-3 flex items-center gap-1 text-[11px] text-muted-foreground">
                 <MonitorSmartphone className="h-3 w-3" />
-                Passkeys are preferred; TOTP is the fallback for shared clinical workstations.
+                Policy template only — neither passkeys nor TOTP are enforced in this deployment. Staff sign in with email and password.
               </p>
             </CardContent>
           </Card>
