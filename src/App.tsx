@@ -11,6 +11,7 @@ import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts } from '@/hooks/useReadReceipts';
 
 import { LoginScreen } from '@/components/auth/LoginScreen';
+import { ResetPasswordScreen } from '@/components/auth/ResetPasswordScreen';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProtectedRoute } from '@/components/routing/ProtectedRoute';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -512,6 +513,9 @@ function AppRoutes({
       {/* Legacy routes — redirect to new Telemed-X paths */}
       <Route path="/telemedicine/doctor-login" element={<ExternalDoctorAuth onApprovedLogin={() => {}} />} />
       <Route path="/telemedicine/patient" element={<PatientPortal />} />
+
+      {/* Password recovery — resolves before the staff shell, with or without a session */}
+      <Route path="/reset-password" element={<ResetPasswordScreen />} />
 
       {/* Hospital staff routes */}
       <Route path="*" element={

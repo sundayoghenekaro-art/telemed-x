@@ -22,6 +22,28 @@
     <meta name="twitter:title" content="Trika Health | Digital Healthcare Ecosystem">
     <meta property="og:description" content="Trika Health — a unified digital healthcare ecosystem for hospitals, clinicians, and patients.">
     <meta name="twitter:description" content="Trika Health — a unified digital healthcare ecosystem for hospitals, clinicians, and patients.">
+
+    <script>
+      // The auth client consumes and clears the recovery hash during start-up, so
+      // record the link first. Links minted before /reset-password existed still
+      // arrive at "/" (the Site URL fallback), so move them onto the right route.
+      (function () {
+        var hash = window.location.hash;
+        if (hash.indexOf('type=recovery') === -1) return;
+        try {
+          window.sessionStorage.setItem('trika:password-recovery', '1');
+        } catch (error) {
+          // Private modes can refuse storage; the link is still single-use.
+        }
+        if (window.location.pathname !== '/reset-password') {
+          window.history.replaceState(
+            null,
+            '',
+            '/reset-password' + window.location.search + hash
+          );
+        }
+      })();
+    </script>
 </head>
 
   <body>
