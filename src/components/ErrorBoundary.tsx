@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { reportError } from '@/lib/observability';
+import { isModuleLoadError } from '@/lib/lazyRoute';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -24,12 +25,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (!this.state.error) return this.props.children;
 
+    // A chunk from the previous build cannot be fetched again from this tab, so
+    // "Try again" would only reproduce the same failure — offer a reload.
+    const staleTab = isModuleLoadError(this.state.error);
+
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-6">
         <div className="max-w-md w-full rounded-xl border border-border bg-card p-6 space-y-4 animate-fade-in">
           <h1 className="text-xl font-semibold text-foreground">Something went wrong</h1>
           <p className="text-sm text-muted-foreground">
-            This screen failed to load. Your data has not been changed.
+            {staleTab
+              ? 'A newer version of this app was released while this tab was open. Reload to continue.'
+              : 'This screen failed to load. Your data has not been changed.'}
           </p>
           {import.meta.env.DEV && (
             <pre className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">
@@ -46,9 +53,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => this.setState({ error: null, reference: null })}
+              onClick={
+                staleTab
+                  ? () => window.location.reload()
+                  : () => this.setState({ error: null, reference: null })
+              }
               className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
-              Try again
+              {staleTab ? 'Reload' : 'Try again'}
             </button>
             <button
               type="button"
