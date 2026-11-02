@@ -12,6 +12,7 @@ import { NewClinicalOrderDialog } from './NewClinicalOrderDialog';
 
 interface ClinicalOrdersPanelProps {
   orders: ClinicalOrder[];
+  canCreateOrder?: boolean;
 }
 
 const typeIcons: Record<ClinicalOrderType, React.ElementType> = {
@@ -43,7 +44,7 @@ const priorityConfig = {
   stat: 'bg-destructive text-destructive-foreground',
 };
 
-export function ClinicalOrdersPanel({ orders }: ClinicalOrdersPanelProps) {
+export function ClinicalOrdersPanel({ orders, canCreateOrder = false }: ClinicalOrdersPanelProps) {
   const [localOrders, setLocalOrders] = useState<ClinicalOrder[]>(orders);
   const [showNew, setShowNew] = useState(false);
 
@@ -62,12 +63,14 @@ export function ClinicalOrdersPanel({ orders }: ClinicalOrdersPanelProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={() => setShowNew(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Order
-        </Button>
-      </div>
+      {canCreateOrder && (
+        <div className="flex justify-end">
+          <Button onClick={() => setShowNew(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            New Order
+          </Button>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

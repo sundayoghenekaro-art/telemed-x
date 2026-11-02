@@ -20,6 +20,7 @@ export interface QueueTicket {
   reminderSentAt?: string;
   calledAt?: string;
   completedAt?: string;
+  note?: string;
 }
 
 export const mockQueueTickets: QueueTicket[] = [

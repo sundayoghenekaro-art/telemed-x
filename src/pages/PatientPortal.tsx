@@ -7,9 +7,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SessionChat } from '@/components/telemedicine/SessionChat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Video, MessageSquare, Pill, Calendar, LogOut, Heart, ChevronRight, Clock, Loader2, Plus, Zap, FileText, Brain, HandHeart, Shield, FolderOpen, Activity, User, Wallet, Flame, ClipboardList, Stethoscope, Globe, FileJson, Ambulance, CheckCircle2, XCircle } from 'lucide-react';
+import { Video, MessageSquare, Pill, Calendar, LogOut, Heart, ChevronRight, Clock, Loader2, Plus, FileText, Brain, HandHeart, Shield, FolderOpen, Activity, User, Wallet, Flame, ClipboardList, Stethoscope, Globe, FileJson, Ambulance, CheckCircle2, XCircle, HeartPulse } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { TelemedXShell } from '@/components/telemedx/TelemedXShell';
 import { PatientAuth } from './PatientAuth';
 import { PatientBookingTab } from '@/components/telemedicine/PatientBookingTab';
 import { ConsentRequestPopup } from '@/components/telemedicine/ConsentRequestPopup';
@@ -21,7 +23,7 @@ import { PreSessionMoodCheckIn } from '@/components/telemedicine/PreSessionMoodC
 import { MedicalRecordsTab } from '@/components/patient/MedicalRecordsTab';
 import { MedicationsTab } from '@/components/patient/MedicationsTab';
 import { VitalsDashboard } from '@/components/patient/VitalsDashboard';
-import { PatientHomeCards } from '@/components/patient/PatientHomeCards';
+import { PatientHealthDashboard } from '@/components/patient/PatientHealthDashboard';
 import { PainBodyMap } from '@/components/patient/PainBodyMap';
 import { EmergencyResponseTab } from '@/components/patient/EmergencyResponseTab';
 import { SessionPainMapEditor } from '@/components/patient/SessionPainMapEditor';
@@ -129,6 +131,7 @@ const NAV_GROUPS = [
 export function PatientPortal() {
   const [patient, setPatient] = useState<PatientState | null>(null);
   const [activeTab, setActiveTab] = useState('sessions');
+  const [vitalsAutoLog, setVitalsAutoLog] = useState(false);
   const [sessions, setSessions] = useState<PatientSession[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [activeSession, setActiveSession] = useState<PatientSession | null>(null);
@@ -158,10 +161,12 @@ export function PatientPortal() {
     const [sessionsRes, prescriptionsRes] = await Promise.all([
       supabase.from('telemedicine_sessions').select('*')
         .eq('patient_user_id', patient.userId)
-        .order('scheduled_at', { ascending: false }),
+        .order('scheduled_at', { ascending: false })
+        .limit(100),
       supabase.from('telemedicine_prescriptions').select('*')
         .eq('patient_account_id', patient.accountId)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(100),
     ]);
 
     if (sessionsRes.data) setSessions(sessionsRes.data as PatientSession[]);
@@ -195,6 +200,7 @@ export function PatientPortal() {
       .select('id, medication_name, dosage, frequency, duration, instructions, refills, status, doctor_name, created_at')
       .eq('session_id', activeSession.id)
       .order('created_at', { ascending: false })
+      .limit(50)
       .then(({ data }) => {
         if (!cancelled && data) setSessionRx(data as Prescription[]);
       });
@@ -302,7 +308,25 @@ export function PatientPortal() {
     : false;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <TelemedXShell
+      portal="Patient portal"
+      icon={HeartPulse}
+      accent="teal"
+      subtitle={`Welcome, ${patient.patientName}`}
+      maxWidth="max-w-7xl"
+      contentClassName="px-3 sm:px-5"
+      actions={
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 text-muted-foreground hover:bg-white/70 hover:text-foreground"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="hidden sm:inline">Sign out</span>
+        </Button>
+      }
+    >
       {/* Real-time consent request popup */}
       <ConsentRequestPopup patientUserId={patient.userId} />
       {/* Pre-session mood check-in */}
@@ -317,26 +341,8 @@ export function PatientPortal() {
           onSkip={handleMoodCheckComplete}
         />
       )}
-      {/* Header */}
-      <header className="border-b border-border sticky top-0 z-10 bg-primary text-primary-foreground">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-primary-foreground/20">
-              <Zap className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm">Telemed-X</p>
-              <p className="text-xs opacity-70">Welcome, {patient.patientName}</p>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" /> Sign Out
-          </Button>
-        </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4">
-        {activeSession ? (
+      {activeSession ? (
           /* Consultation / Visit summary view */
           <div className="space-y-4 py-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -632,60 +638,91 @@ export function PatientPortal() {
           </div>
         ) : (
           /* Dashboard with Sidebar */
-          <div className="flex flex-col lg:flex-row gap-0 min-h-[calc(100vh-64px)]">
+          <div className="flex flex-col gap-4 lg:min-h-[calc(100vh-96px)] lg:flex-row">
             {/* Sidebar Navigation */}
-            <nav className="w-full lg:w-56 shrink-0 border-b lg:border-b-0 lg:border-r border-border p-2 lg:py-4 lg:pr-2 lg:pl-0 bg-muted/30">
-              <div className="lg:hidden">
-                <Select value={activeTab} onValueChange={setActiveTab}>
-                  <SelectTrigger className="h-9 bg-background text-sm" aria-label="Patient portal section">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {NAV_GROUPS.map((group) => (
-                      <SelectGroup key={group.label}>
-                        <SelectLabel className="text-[10px] uppercase tracking-wider">{group.label}</SelectLabel>
-                        {group.items.map((item) => (
-                          <SelectItem key={item.key} value={item.key}>{item.label}</SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="hidden lg:block">
-                {NAV_GROUPS.map((group) => (
-                  <div key={group.label} className="mb-3 last:mb-0">
-                    <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                      {group.label}
-                    </p>
-                    {group.items.map((item) => (
-                      <button
-                        key={item.key}
-                        onClick={() => setActiveTab(item.key)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all text-left ${
-                          activeTab === item.key
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                        }`}
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                ))}
+            <nav className="w-full shrink-0 lg:w-60" aria-label="Patient portal sections">
+              <div className="lg:sticky lg:top-[76px]">
+                <div className="lg:hidden">
+                  <Select value={activeTab} onValueChange={setActiveTab}>
+                    <SelectTrigger className="glass-panel h-10 rounded-xl text-sm" aria-label="Patient portal section">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NAV_GROUPS.map((group) => (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel className="text-[10px] uppercase tracking-wider">{group.label}</SelectLabel>
+                          {group.items.map((item) => (
+                            <SelectItem key={item.key} value={item.key}>{item.label}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="glass-panel hidden rounded-2xl p-2.5 lg:block">
+                  {NAV_GROUPS.map((group, groupIndex) => (
+                    <div
+                      key={group.label}
+                      className="animate-rise mb-3 last:mb-0"
+                      style={{ animationDelay: `${groupIndex * 55}ms` }}
+                    >
+                      <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+                        {group.label}
+                      </p>
+                      <div className="space-y-0.5">
+                        {group.items.map((item) => {
+                          const active = activeTab === item.key;
+                          return (
+                            <button
+                              key={item.key}
+                              onClick={() => setActiveTab(item.key)}
+                              aria-current={active ? 'page' : undefined}
+                              className={cn(
+                                'group relative flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-all duration-300',
+                                active
+                                  ? 'tx-nav-active'
+                                  : 'text-muted-foreground hover:translate-x-0.5 hover:bg-white/70 hover:text-foreground',
+                              )}
+                            >
+                              {active && (
+                                <span aria-hidden className="absolute left-1 h-4 w-1 rounded-full bg-white/80" />
+                              )}
+                              <item.icon className={cn('h-4 w-4 shrink-0 transition-transform duration-300', !active && 'group-hover:scale-110')} />
+                              <span className="truncate">{item.label}</span>
+                              <ChevronRight
+                                className={cn(
+                                  'ml-auto h-3.5 w-3.5 shrink-0 transition-all duration-300',
+                                  active ? 'opacity-100' : '-translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-60',
+                                )}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </nav>
 
             {/* Main Content */}
-            <div className="flex-1 w-full px-2 lg:pl-6 py-4 min-w-0">
+            <div className="min-w-0 flex-1 py-1 lg:pl-2">
+              <div key={activeTab} className="animate-rise">
               {activeTab === 'sessions' && (
                 <div className="space-y-4">
-                  <h2 className="text-lg font-bold text-foreground">My Consultations</h2>
-                  <PatientHomeCards patientUserId={patient.userId} />
+                  <PatientHealthDashboard
+                    patientUserId={patient.userId}
+                    onLogVitals={() => { setVitalsAutoLog(true); setActiveTab('vitals'); }}
+                    onBookSession={() => setActiveTab('book')}
+                  />
                   {upcomingSessions.length > 0 && (
                     <div className="space-y-3">
-                      <h3 className="font-semibold text-foreground">Upcoming</h3>
+                      <h3 className="flex items-center gap-2 font-semibold text-foreground">
+                        Upcoming
+                        <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          {upcomingSessions.length}
+                        </span>
+                      </h3>
                       {upcomingSessions.map((session) => (
                         <PatientSessionCard key={session.id} session={session} onJoin={() => handleJoinWithMoodCheck(session)} />
                       ))}
@@ -700,10 +737,17 @@ export function PatientPortal() {
                     </div>
                   )}
                   {sessions.length === 0 && !loading && (
-                    <div className="text-center py-16 space-y-2">
-                      <Calendar className="h-12 w-12 mx-auto text-muted-foreground/30" />
-                      <p className="font-medium text-muted-foreground">No consultations yet</p>
-                      <p className="text-sm text-muted-foreground">Your scheduled telemedicine sessions will appear here</p>
+                    <div className="glass-panel flex flex-col items-center gap-2 rounded-2xl px-6 py-14 text-center">
+                      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/70 text-muted-foreground/60">
+                        <Calendar className="h-7 w-7" />
+                      </span>
+                      <p className="font-semibold text-foreground">No consultations yet</p>
+                      <p className="max-w-xs text-sm text-muted-foreground">
+                        Book a clinician and your sessions, notes and prescriptions will appear here.
+                      </p>
+                      <Button size="sm" className="mt-2 gap-1.5" onClick={() => setActiveTab('book')}>
+                        <Plus className="h-4 w-4" /> Book your first session
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -764,7 +808,13 @@ export function PatientPortal() {
               {activeTab === 'referrals' && <PatientReferralsView />}
               {activeTab === 'records' && <MedicalRecordsTab patientUserId={patient.userId} />}
               {activeTab === 'medications' && <MedicationsTab patientUserId={patient.userId} />}
-              {activeTab === 'vitals' && <VitalsDashboard patientUserId={patient.userId} />}
+              {activeTab === 'vitals' && (
+                <VitalsDashboard
+                  patientUserId={patient.userId}
+                  autoOpenLog={vitalsAutoLog}
+                  onAutoLogConsumed={() => setVitalsAutoLog(false)}
+                />
+              )}
               {activeTab === 'care-plans' && <CarePlanView patientUserId={patient.userId} />}
               {activeTab === 'triage' && <TriageAssistant patientUserId={patient.userId} onBookConsult={() => setActiveTab('book')} />}
               {activeTab === 'programmes' && (
@@ -787,21 +837,21 @@ export function PatientPortal() {
                 />
               )}
               {activeTab === 'anonymous' && <AnonymousConsultation patientUserId={patient.userId} patientName={patient.patientName} patientAccountId={patient.accountId} />}
+              </div>
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </TelemedXShell>
   );
 }
 
-const PATIENT_STATUS: Record<string, { label: string; chip: string }> = {
-  scheduled: { label: 'Scheduled', chip: 'border-border text-muted-foreground' },
-  waiting: { label: 'In waiting room', chip: 'border-amber-500/40 bg-amber-500/10 text-amber-700' },
-  active: { label: 'In consultation — join now', chip: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700' },
-  completed: { label: 'Completed', chip: 'border-sky-500/30 bg-sky-500/10 text-sky-700' },
-  cancelled: { label: 'Cancelled', chip: 'border-red-500/30 bg-red-500/10 text-red-600' },
-  no_show: { label: 'Missed', chip: 'border-orange-500/30 bg-orange-500/10 text-orange-700' },
+const PATIENT_STATUS: Record<string, { label: string; chip: string; bar: string }> = {
+  scheduled: { label: 'Scheduled', chip: 'border-border text-muted-foreground', bar: 'bg-slate-300' },
+  waiting: { label: 'In waiting room', chip: 'border-amber-500/40 bg-amber-500/10 text-amber-700', bar: 'bg-amber-400' },
+  active: { label: 'In consultation — join now', chip: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700', bar: 'bg-emerald-500' },
+  completed: { label: 'Completed', chip: 'border-sky-500/30 bg-sky-500/10 text-sky-700', bar: 'bg-sky-400' },
+  cancelled: { label: 'Cancelled', chip: 'border-red-500/30 bg-red-500/10 text-red-600', bar: 'bg-rose-400' },
+  no_show: { label: 'Missed', chip: 'border-orange-500/30 bg-orange-500/10 text-orange-700', bar: 'bg-orange-400' },
 };
 
 function SeparatorRow() {
@@ -811,15 +861,30 @@ function SeparatorRow() {
 function PatientSessionCard({ session, onJoin }: { session: PatientSession; onJoin: () => void }) {
   const s = PATIENT_STATUS[session.status] || PATIENT_STATUS.scheduled;
   const isUpcoming = ['scheduled', 'waiting', 'active'].includes(session.status);
+  const isActive = session.status === 'active';
 
   return (
-    <Card className={`transition-all hover:border-primary/30 ${session.status === 'active' ? 'border-emerald-500/40' : ''}`}>
+    <Card
+      className={cn(
+        'tx-hover group relative overflow-hidden pl-1 hover:border-primary/35',
+        isActive && 'border-emerald-500/40 shadow-[0_18px_44px_-30px_rgba(16,185,129,0.8)]',
+      )}
+    >
+      <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1', s.bar)} />
       <CardContent className="pt-4 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-semibold">Dr. {session.doctor_name}</p>
-              <Badge variant="outline" className={`text-xs ${s.chip}`}>{s.label}</Badge>
+              <Badge variant="outline" className={`text-xs ${s.chip}`}>
+                {isActive && (
+                  <span className="relative mr-1.5 flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-70" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                  </span>
+                )}
+                {s.label}
+              </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
               {session.doctor_specialty || 'General Practice'} • {session.duration_minutes} min
@@ -839,11 +904,12 @@ function PatientSessionCard({ session, onJoin }: { session: PatientSession; onJo
           {['scheduled', 'waiting', 'active', 'completed'].includes(session.status) && (
             <Button
               size="sm"
-              variant={session.status === 'active' ? 'default' : 'outline'}
+              variant={isActive ? 'default' : 'outline'}
               onClick={onJoin}
+              className={cn('gap-1', isActive && 'animate-glow-pulse')}
             >
-              {session.status === 'completed' ? 'View summary' : session.status === 'active' ? 'Join now' : 'Join'}
-              <ChevronRight className="h-4 w-4 ml-1" />
+              {session.status === 'completed' ? 'View summary' : isActive ? 'Join now' : 'Join'}
+              <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </Button>
           )}
         </div>

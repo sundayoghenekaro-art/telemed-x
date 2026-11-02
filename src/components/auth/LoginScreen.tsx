@@ -153,7 +153,17 @@ export function LoginScreen({ onLogin, onDemoLogin }: LoginScreenProps) {
 
       if (response.error) {
         console.error('Bootstrap edge function error:', response.error);
-        toast.error('Bootstrap failed. Please try again.');
+        let message = 'Bootstrap failed. Please try again.';
+        const context = (response.error as { context?: unknown }).context;
+        if (context instanceof Response) {
+          try {
+            const body = await context.clone().json();
+            if (body?.error) message = String(body.error);
+          } catch {
+            // Body was not JSON; keep the generic message.
+          }
+        }
+        toast.error(message);
         return;
       }
 

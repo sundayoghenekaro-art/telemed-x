@@ -23,6 +23,7 @@ interface ClinicalPageProps {
   patients?: Patient[];
   canAcknowledgeCritical?: boolean;
   canManageReferral?: boolean;
+  canCreateOrder?: boolean;
   clinicianName?: string;
 }
 
@@ -31,6 +32,7 @@ export function ClinicalPage({
   patients = mockPatients,
   canAcknowledgeCritical = false,
   canManageReferral = false,
+  canCreateOrder = false,
   clinicianName,
 }: ClinicalPageProps) {
   const [activeTab, setActiveTab] = useState('encounters');
@@ -116,7 +118,7 @@ export function ClinicalPage({
           <EncountersList encounters={scopedEncounters} />
         </TabsContent>
         <TabsContent value="orders" className="mt-6">
-          <ClinicalOrdersPanel orders={mockClinicalOrders} />
+          <ClinicalOrdersPanel orders={mockClinicalOrders} canCreateOrder={canCreateOrder} />
         </TabsContent>
         <TabsContent value="vitals" className="mt-6">
           <VitalsPanel vitalsHistory={mockVitalsHistory} patients={patients} />

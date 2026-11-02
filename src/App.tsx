@@ -50,6 +50,7 @@ const VendorDirectoryPage = lazy(() => import('@/components/vendors/VendorDirect
 const SuperAdminVendorsPage = lazy(() => import('@/components/vendors/SuperAdminVendorsPage').then((m) => ({ default: m.SuperAdminVendorsPage })));
 const VendorAdminPortal = lazy(() => import('@/components/vendors/VendorAdminPortal').then((m) => ({ default: m.VendorAdminPortal })));
 const DefenseHealthPage = lazy(() => import('@/pages/DefenseHealthPage').then((m) => ({ default: m.DefenseHealthPage })));
+const DefenceLearningHub = lazy(() => import('@/components/defence/learning/DefenceLearningHub').then((m) => ({ default: m.DefenceLearningHub })));
 const DefenseSuperAdminPage = lazy(() => import('@/pages/DefenseSuperAdminPage').then((m) => ({ default: m.DefenseSuperAdminPage })));
 import { User, Patient, UserRole, Appointment, LabOrder, LabSample, LabResult, SampleStatus, LabAnalyzer, AnalyzerStatus, Prescription, PrescriptionStatus } from '@/types/dhos';
 import {
@@ -505,6 +506,7 @@ function AppRoutes({
       <Route path="/telemed-x/vendor-onboarding" element={<VendorOnboardingPage />} />
       <Route path="/telemed-x/vendor-portal" element={<VendorAdminPortal />} />
       <Route path="/defense-health" element={<DefenseHealthPage />} />
+      <Route path="/defense-health/learning" element={<DefenceLearningHub />} />
       <Route path="/defense-health/super-admin" element={<DefenseSuperAdminPage />} />
 
       {/* Legacy routes — redirect to new Telemed-X paths */}
@@ -605,6 +607,10 @@ function AppRoutes({
                   patients={scopedPatients}
                   canAcknowledgeCritical={canPerformAction(currentUser.role, 'action:acknowledge_critical_value')}
                   canManageReferral={canPerformAction(currentUser.role, 'action:manage_referral')}
+                  canCreateOrder={
+                    canPerformAction(currentUser.role, 'action:order_lab_test') ||
+                    canPerformAction(currentUser.role, 'action:order_imaging')
+                  }
                   clinicianName={currentUser?.name}
                 />
               } />
@@ -625,6 +631,7 @@ function AppRoutes({
               <Route path="/billing" element={
                 <BillingPage
                   canManage={canPerformAction(currentUser.role, 'action:manage_billing')}
+                  canCreateInvoice={canPerformAction(currentUser.role, 'action:create_invoice')}
                   canCheckInsurance={canPerformAction(currentUser.role, 'action:check_insurance')}
                   canSettleInsurance={canPerformAction(currentUser.role, 'action:settle_insurance')}
                   canRecordPayment={canPerformAction(currentUser.role, 'action:record_payment')}

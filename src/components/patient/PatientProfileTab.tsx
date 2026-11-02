@@ -15,6 +15,7 @@ import {
   Ruler, Briefcase, Flag, HeartHandshake, Edit3, Check,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { signedUrl } from '@/lib/storage';
 
 interface PatientAccount {
   id: string;
@@ -66,6 +67,7 @@ export function PatientProfileTab({ patientUserId, accountId, onProfileUpdate }:
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [allergyDialogOpen, setAllergyDialogOpen] = useState(false);
+  const [photoSrc, setPhotoSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<Partial<PatientAccount>>({});
@@ -78,6 +80,21 @@ export function PatientProfileTab({ patientUserId, accountId, onProfileUpdate }:
     fetchProfile();
     fetchAllergies();
   }, [accountId]);
+
+  // The bucket is private, so the stored value is a path and the image needs a
+  // short-lived signature each session.
+  useEffect(() => {
+    let cancelled = false;
+    const stored = profile?.photo_url;
+    if (!stored) {
+      setPhotoSrc(null);
+      return;
+    }
+    signedUrl('profile-photos', stored, 3600).then(url => {
+      if (!cancelled) setPhotoSrc(url);
+    });
+    return () => { cancelled = true; };
+  }, [profile?.photo_url]);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -122,19 +139,15 @@ export function PatientProfileTab({ patientUserId, accountId, onProfileUpdate }:
         .upload(filePath, file, { upsert: true });
       if (upErr) throw upErr;
 
-      const { data: urlData } = supabase.storage
-        .from('profile-photos')
-        .getPublicUrl(filePath);
-
-      const photoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-
       const { error: updErr } = await supabase
         .from('patient_accounts')
-        .update({ photo_url: photoUrl })
+        .update({ photo_url: filePath })
         .eq('id', accountId);
       if (updErr) throw updErr;
 
-      setProfile(prev => prev ? { ...prev, photo_url: photoUrl } : prev);
+      const freshUrl = await signedUrl('profile-photos', filePath, 3600);
+      if (freshUrl) setPhotoSrc(freshUrl);
+      setProfile(prev => prev ? { ...prev, photo_url: filePath } : prev);
       toast.success('Profile photo updated.');
     } catch {
       toast.error('Could not upload photo. Please try again.');
@@ -250,8 +263,8 @@ export function PatientProfileTab({ patientUserId, accountId, onProfileUpdate }:
             {/* Profile Photo */}
             <div className="relative group">
               <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-border bg-muted flex items-center justify-center">
-                {profile.photo_url ? (
-                  <img src={profile.photo_url} alt={profile.full_name} className="w-full h-full object-cover" />
+                {photoSrc ? (
+                  <img src={photoSrc} alt={profile.full_name} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-3xl font-bold text-muted-foreground">{initials}</span>
                 )}

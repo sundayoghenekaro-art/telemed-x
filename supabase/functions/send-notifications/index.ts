@@ -1,25 +1,13 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { consumeRateLimit } from '../_shared/rateLimit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX = 10;
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(userId);
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return true;
-  }
-  if (entry.count >= RATE_LIMIT_MAX) return false;
-  entry.count++;
-  return true;
-}
+const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 
 function baseTemplate(content: string): string {
   return `<!DOCTYPE html>
@@ -194,7 +182,7 @@ Deno.serve(async (req) => {
       return !!data;
     };
 
-    if (!checkRateLimit(userId)) {
+    if (!(await consumeRateLimit(serviceClient, 'send-notifications', userId, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_SECONDS))) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
         status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

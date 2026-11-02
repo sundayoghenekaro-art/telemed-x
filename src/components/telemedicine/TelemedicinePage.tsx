@@ -7,6 +7,7 @@ import { TelemedicineConsole } from '@/components/telemedicine/TelemedicineConso
 import { ExternalDoctorApprovals } from '@/components/telemedicine/ExternalDoctorApprovals';
 import { Video, Users, UserCheck, Clock, User, Zap } from 'lucide-react';
 import { User as UserType } from '@/types/dhos';
+import { canPerformAction } from '@/lib/access';
 import { format, parseISO } from 'date-fns';
 
 interface TelemedicinePageProps {
@@ -22,27 +23,27 @@ export function TelemedicinePage({ currentUser }: TelemedicinePageProps) {
   const [tab, setTab] = useState(isAdmin && !isPhysician ? 'approvals' : 'console');
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col gap-4">
-      <div className="flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Zap className="h-6 w-6" style={{ color: 'hsl(250, 84%, 54%)' }} />
-            Telemed-X
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Virtual consultations — hospital physicians & external doctors
-          </p>
+    <div className="flex h-[calc(100vh-8rem)] flex-col gap-4">
+      <div className="glass-panel animate-rise flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
+            <Zap className="h-5 w-5 text-primary" />
+          </span>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Telemed-X</h1>
+            <p className="text-sm text-muted-foreground">
+              Virtual consultations — hospital physicians &amp; external doctors
+            </p>
+          </div>
         </div>
-        <Badge variant="outline" className="capitalize">
-          {currentUser.role.replace('_', ' ')}
-        </Badge>
+        <Badge variant="outline" className="capitalize">{currentUser.role.replace('_', ' ')}</Badge>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="shrink-0 w-fit h-auto flex-wrap justify-start gap-1">
+      <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
+        <TabsList className="h-auto w-fit shrink-0 flex-wrap justify-start gap-1 rounded-xl border border-white/70 bg-white/60 p-1 shadow-sm">
           {isDoctor && (
-            <TabsTrigger value="console">
-              <Video className="h-4 w-4 mr-2" /> Consultations
+            <TabsTrigger value="console" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Video className="mr-2 h-4 w-4" /> Consultations
             </TabsTrigger>
           )}
           {isAdmin && (
@@ -51,11 +52,11 @@ export function TelemedicinePage({ currentUser }: TelemedicinePageProps) {
               <span aria-hidden className="self-center px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Administration
               </span>
-              <TabsTrigger value="approvals">
-                <UserCheck className="h-4 w-4 mr-2" /> Practitioner Applications
+              <TabsTrigger value="approvals" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <UserCheck className="mr-2 h-4 w-4" /> Practitioner Applications
               </TabsTrigger>
-              <TabsTrigger value="all-sessions">
-                <Users className="h-4 w-4 mr-2" /> All Sessions
+              <TabsTrigger value="all-sessions" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <Users className="mr-2 h-4 w-4" /> All Sessions
               </TabsTrigger>
             </>
           )}
@@ -68,6 +69,7 @@ export function TelemedicinePage({ currentUser }: TelemedicinePageProps) {
               doctorName={currentUser.name}
               doctorType="hospital"
               doctorSpecialty={currentUser.department || 'Internal Medicine'}
+              canPrescribe={canPerformAction(currentUser.role, 'action:prescribe_medication')}
             />
           </TabsContent>
         )}
@@ -126,8 +128,8 @@ function AllSessionsView() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">{sessions.length} total sessions</p>
-      {sessions.map((session) => (
-        <Card key={session.id} className="hover:border-primary/30 transition-all">
+      {sessions.map((session, index) => (
+        <Card key={session.id} className="tx-hover animate-rise" style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}>
           <CardContent className="py-3 px-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-3">

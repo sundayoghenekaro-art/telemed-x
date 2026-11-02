@@ -23,6 +23,7 @@ import {
   Stethoscope, Truck, Users, Video, XCircle, HeartPulse, Route,
 } from 'lucide-react';
 import { AmbulanceAuth } from './AmbulanceAuth';
+import { TelemedXShell } from '@/components/telemedx/TelemedXShell';
 
 interface AmbulanceAccount {
   id?: string;
@@ -199,17 +200,18 @@ const openRoute = (
   );
 };
 
-function Kpi({ icon: Icon, label, value, hint, tone }: {
+function Kpi({ icon: Icon, label, value, hint, tone, delay = 0 }: {
   icon: ComponentType<{ className?: string }>;
   label: string;
   value: string | number;
   hint?: string;
   tone?: string;
+  delay?: number;
 }) {
   return (
-    <Card className="border-border/70">
+    <Card className="tx-hover animate-rise border-border/60" style={{ animationDelay: `${delay}ms` }}>
       <CardContent className="flex items-center gap-3 p-3">
-        <div className={`rounded-lg p-2 ${tone || 'bg-primary/10 text-primary'}`}>
+        <div className={`rounded-xl p-2 ${tone || 'bg-primary/10 text-primary'}`}>
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
@@ -783,61 +785,53 @@ export function AmbulanceConsole() {
   const transportingCount = activeRequests.filter((r) => r.status === 'transporting').length;
 
   return (
-    <div className="min-h-screen bg-muted/20 text-foreground">
-      <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-3 px-3 py-2.5 sm:px-4">
-          <div className="flex items-center gap-2">
-            <div className="rounded-xl bg-red-500/10 p-2">
-              <Ambulance className="h-5 w-5 text-red-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold leading-tight">Telemed-X EMS Dispatch</p>
-              <p className="truncate text-[11px] text-muted-foreground">
-                {account.full_name} · {account.role}
-                {account.organization_name ? ` · ${account.organization_name}` : ''}
-              </p>
-            </div>
-          </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <Badge variant="outline" className="hidden gap-1 bg-emerald-500/10 text-emerald-700 border-emerald-500/30 md:inline-flex">
-              <Siren className="h-3 w-3" /> On duty
-            </Badge>
-            <Badge variant="outline" className="hidden gap-1 lg:inline-flex">
-              {driverGps ? (
-                <><LocateFixed className="h-3 w-3 text-sky-600" /> GPS live</>
-              ) : (
-                <><LocateFixed className="h-3 w-3 text-muted-foreground" /> Acquiring GPS…</>
-              )}
-            </Badge>
-            <Button size="sm" variant="outline" className="h-8 gap-1 px-2 sm:px-3"
-              onClick={() => setVehicleOpen(true)} title="Add unit" aria-label="Add unit">
-              <Plus className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Add unit</span>
-            </Button>
-            <Button size="sm" className="h-8 gap-1 bg-red-600 px-2 text-white hover:bg-red-700 sm:px-3"
-              onClick={() => setNewReqOpen(true)} title="New emergency" aria-label="New emergency">
-              <Siren className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">New emergency</span>
-            </Button>
-            <Button size="icon-sm" variant="ghost" onClick={signOut} title="Sign out" aria-label="Sign out">
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-[1600px] space-y-4 px-3 py-4 sm:px-4">
+    <TelemedXShell
+      portal="EMS dispatch"
+      icon={Siren}
+      accent="rose"
+      maxWidth="max-w-[1600px]"
+      contentClassName="px-3 sm:px-4"
+      subtitle={`${account.full_name} · ${account.role}${account.organization_name ? ` · ${account.organization_name}` : ''}`}
+      actions={
+        <>
+          <Badge variant="outline" className="hidden gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 md:inline-flex">
+            <Siren className="h-3 w-3" /> On duty
+          </Badge>
+          <Badge variant="outline" className="hidden gap-1 lg:inline-flex">
+            {driverGps ? (
+              <><LocateFixed className="h-3 w-3 text-sky-600" /> GPS live</>
+            ) : (
+              <><LocateFixed className="h-3 w-3 text-muted-foreground" /> Acquiring GPS…</>
+            )}
+          </Badge>
+          <Button size="sm" variant="outline" className="h-8 gap-1 px-2 sm:px-3"
+            onClick={() => setVehicleOpen(true)} title="Add unit" aria-label="Add unit">
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Add unit</span>
+          </Button>
+          <Button size="sm" className="h-8 gap-1 bg-red-600 px-2 text-white hover:bg-red-700 sm:px-3"
+            onClick={() => setNewReqOpen(true)} title="New emergency" aria-label="New emergency">
+            <Siren className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">New emergency</span>
+          </Button>
+          <Button size="icon-sm" variant="ghost" onClick={signOut} title="Sign out" aria-label="Sign out">
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5">
           <Kpi icon={Activity} label="Active missions" value={activeRequests.length}
-            hint={`${transportingCount} transporting`} tone="bg-primary/10 text-primary" />
+            hint={`${transportingCount} transporting`} tone="bg-primary/10 text-primary" delay={0} />
           <Kpi icon={AlertTriangle} label="Critical" value={criticalCount}
-            hint="Needs immediate response" tone="bg-red-500/10 text-red-600" />
+            hint="Needs immediate response" tone="bg-red-500/10 text-red-600" delay={45} />
           <Kpi icon={Radio} label="Awaiting dispatch" value={unassignedCount}
-            hint="No unit assigned" tone="bg-orange-500/10 text-orange-600" />
+            hint="No unit assigned" tone="bg-orange-500/10 text-orange-600" delay={90} />
           <Kpi icon={Truck} label="Units available" value={availableUnits}
-            hint={`${vehicles.length} in fleet`} tone="bg-sky-500/10 text-sky-600" />
+            hint={`${vehicles.length} in fleet`} tone="bg-sky-500/10 text-sky-600" delay={135} />
           <Kpi icon={HeartPulse} label="Virtual care live" value={careSessions.length}
-            hint="Patients in transit" tone="bg-purple-500/10 text-purple-600" />
+            hint="Patients in transit" tone="bg-purple-500/10 text-purple-600" delay={180} />
         </div>
 
         {careSessions.length > 0 && (
@@ -850,10 +844,10 @@ export function AmbulanceConsole() {
               Live virtual care
             </h2>
             <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-              {careSessions.map((s) => {
+              {careSessions.map((s, index) => {
                 const req = requests.find((r) => r.id === s.request_id);
                 return (
-                  <Card key={s.id} className="border-red-500/30 bg-red-500/5">
+                  <Card key={s.id} className="tx-hover animate-rise border-red-500/30 bg-red-500/[0.06]" style={{ animationDelay: `${index * 50}ms` }}>
                     <CardContent className="space-y-2 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-red-700">
@@ -891,7 +885,7 @@ export function AmbulanceConsole() {
 
         <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)]">
           {/* Priority queue */}
-          <Card className="h-fit lg:sticky lg:top-[68px]">
+          <Card className="h-fit animate-rise lg:sticky lg:top-[72px]">
             <CardHeader className="space-y-2 p-3 pb-2">
               <CardTitle className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2"><Route className="h-4 w-4 text-primary" /> Priority queue</span>
@@ -941,7 +935,7 @@ export function AmbulanceConsole() {
                           });
                         }
                       }}
-                      className={`w-full rounded-lg border border-l-4 border-border bg-card p-2.5 text-left transition-colors hover:border-primary/40 hover:bg-accent/40 ${sev.ring} ${isSelected ? 'ring-2 ring-primary/30 bg-accent/60' : ''}`}
+                      className={`w-full rounded-lg border border-l-4 border-border bg-card p-2.5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-white/70 hover:shadow-soft ${sev.ring} ${isSelected ? 'ring-2 ring-primary/30 bg-white/70 shadow-soft' : ''}`}
                     >
                       <div className="flex items-center gap-1.5">
                         <Badge variant="outline" className={`text-[9px] font-bold uppercase ${sev.chip}`}>{sev.label}</Badge>
@@ -972,10 +966,12 @@ export function AmbulanceConsole() {
 
           {/* Mission workspace */}
           {!selectedRequest ? (
-            <Card className="border-dashed">
+            <Card className="animate-rise border-dashed">
               <CardContent className="flex flex-col items-center justify-center gap-2 py-24 text-center">
-                <Ambulance className="h-12 w-12 text-muted-foreground/30" />
-                <p className="font-medium text-muted-foreground">No mission selected</p>
+                <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/70 ring-1 ring-border/60">
+                  <Ambulance className="h-8 w-8 text-rose-500/60" />
+                </span>
+                <p className="mt-1 font-medium text-foreground">No mission selected</p>
                 <p className="max-w-sm text-xs text-muted-foreground">
                   Pick a request from the priority queue, or log a new emergency to start dispatch.
                 </p>
@@ -1751,7 +1747,7 @@ export function AmbulanceConsole() {
 
       {/* Fleet snapshot (compact footer) */}
       {vehicles.length > 0 && (
-        <div className="mx-auto max-w-[1600px] px-3 pb-6 sm:px-4">
+        <div className="pt-4">
           <Card>
             <CardContent className="flex flex-wrap items-center gap-2 p-3">
               <p className="mr-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -1773,6 +1769,6 @@ export function AmbulanceConsole() {
           </Card>
         </div>
       )}
-    </div>
+    </TelemedXShell>
   );
 }

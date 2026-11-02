@@ -1,0 +1,41 @@
+{
+  "target": "http://127.0.0.1:54321",
+  "requests": [
+    {
+      "name": "latest-vitals",
+      "method": "POST",
+      "path": "/rest/v1/rpc/latest_patient_vitals",
+      "auth": true,
+      "body": {},
+      "weight": 30
+    },
+    {
+      "name": "vitals-page",
+      "method": "GET",
+      "path": "/rest/v1/patient_vitals?select=*&order=recorded_at.desc&limit=50",
+      "auth": true,
+      "weight": 25
+    },
+    {
+      "name": "medical-records-page",
+      "method": "GET",
+      "path": "/rest/v1/patient_medical_records?select=*&order=created_at.desc,id.desc&limit=26",
+      "auth": true,
+      "weight": 20
+    },
+    {
+      "name": "notifications-page",
+      "method": "GET",
+      "path": "/rest/v1/patient_notifications?select=*&order=created_at.desc,id.desc&limit=26",
+      "auth": true,
+      "weight": 15
+    },
+    {
+      "name": "session-messages",
+      "method": "GET",
+      "path": "/rest/v1/session_messages?select=*&order=created_at.desc&limit=50",
+      "auth": true,
+      "weight": 10
+    }
+  ]
+}

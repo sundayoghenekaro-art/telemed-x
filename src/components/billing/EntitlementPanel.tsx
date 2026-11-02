@@ -6,7 +6,6 @@ import {
   Banknote,
   ClipboardCheck,
   CreditCard,
-  Euro,
   FileCheck2,
   ShieldCheck,
   XCircle,
@@ -31,9 +30,9 @@ import {
 } from '@/data/europeMockData';
 import { cn } from '@/lib/utils';
 
-const euro = new Intl.NumberFormat('de-DE', {
+const naira = new Intl.NumberFormat('en-NG', {
   style: 'currency',
-  currency: 'EUR',
+  currency: 'NGN',
   maximumFractionDigits: 0,
 });
 
@@ -192,7 +191,7 @@ export function EntitlementPanel({
                     <div>
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                         <span>Deductible used</span>
-                        <span>{euro.format(entry.deductibleUsed)} / {euro.format(entry.deductibleTotal)}</span>
+                        <span>{naira.format(entry.deductibleUsed)} / {naira.format(entry.deductibleTotal)}</span>
                       </div>
                       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
                         <div
@@ -201,7 +200,7 @@ export function EntitlementPanel({
                         />
                       </div>
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        {remaining === 0 ? 'Deductible exhausted for this year' : `${euro.format(remaining)} remaining`}
+                        {remaining === 0 ? 'Deductible exhausted for this year' : `${naira.format(remaining)} remaining`}
                       </p>
                     </div>
                   )}
@@ -334,7 +333,7 @@ export function EntitlementPanel({
           ))}
 
           <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Euro className="h-3 w-3" /> Decisions mirror the insurer response; nothing is transmitted in this demo.
+            <Banknote className="h-3 w-3" /> Decisions mirror the insurer response; nothing is transmitted in this demo.
           </p>
         </TabsContent>
       </Tabs>

@@ -18,6 +18,12 @@ All frontend environment variables must be prefixed with `VITE_` to be exposed t
 
 **Note:** Both `VITE_SUPABASE_ANON_KEY` and `VITE_SUPABASE_PUBLISHABLE_KEY` should contain the same value. The codebase uses both names for historical compatibility reasons.
 
+#### Error Reporting (optional)
+
+| Variable Name | Description | Example |
+|--------------|-------------|---------|
+| `VITE_ERROR_REPORT_URL` | Collector that receives sanitised client crash reports from `src/lib/observability.ts`. Leave unset to log to the browser console only. Reports carry the pathname (never the query string), message, truncated stack, and a short reference the user sees on the error screen — no user identifiers or form values. | `https://errors.example.com/ui` |
+
 ### Backend Environment Variables (Edge Functions)
 
 These are automatically available in Supabase Edge Functions and should NOT be added to your `.env` file:

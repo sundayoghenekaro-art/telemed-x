@@ -293,10 +293,24 @@ export function LabDashboard({ orders, samples, analyzers }: LabDashboardProps) 
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={testDistribution} barCategoryGap="20%">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} height={60} interval={0} />
-                <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+              <BarChart data={testDistribution} layout="vertical" barCategoryGap="18%">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={112}
+                  interval={0}
+                  tickLine={false}
+                  tick={({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => {
+                    const label = payload.value.length > 16 ? `${payload.value.slice(0, 15)}…` : payload.value;
+                    return (
+                      <text x={x} y={y} dy={3.5} textAnchor="end" fontSize={10} fill="hsl(var(--muted-foreground))">
+                        {label}
+                      </text>
+                    );
+                  }}
+                />
                 <Tooltip
                   contentStyle={{
                     background: 'hsl(var(--card))',
@@ -305,7 +319,7 @@ export function LabDashboard({ orders, samples, analyzers }: LabDashboardProps) 
                     fontSize: '12px',
                   }}
                 />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} name="Orders">
+                <Bar dataKey="count" radius={[0, 4, 4, 0]} name="Orders" isAnimationActive={false}>
                   {testDistribution.map((_, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
                   ))}

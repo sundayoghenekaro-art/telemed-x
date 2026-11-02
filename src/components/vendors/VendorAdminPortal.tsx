@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
+import { TelemedXShell } from '@/components/telemedx/TelemedXShell';
 
 interface Vendor {
   id: string; name: string; type: string; status: string;
@@ -198,17 +199,29 @@ export function VendorAdminPortal() {
     finally { setActionLoading(false); }
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+  if (loading) {
+    return (
+      <TelemedXShell portal="Partner portal" icon={Building2} accent="sky" maxWidth="max-w-6xl">
+        <div className="flex justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </TelemedXShell>
+    );
+  }
 
   if (!vendor) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <Building2 className="h-12 w-12 text-muted-foreground" />
-        <p className="text-muted-foreground">You're not registered as a vendor admin.</p>
-        <Button variant="outline" onClick={() => window.location.href = '/telemed-x/vendor-onboarding'}>
-          Register Your Facility
-        </Button>
-      </div>
+      <TelemedXShell portal="Partner portal" icon={Building2} accent="sky" maxWidth="max-w-6xl">
+        <div className="glass-panel animate-rise flex flex-col items-center justify-center space-y-4 rounded-2xl py-20">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/70 ring-1 ring-border/60">
+            <Building2 className="h-7 w-7 text-muted-foreground" />
+          </span>
+          <p className="text-muted-foreground">You're not registered as a vendor admin.</p>
+          <Button variant="outline" onClick={() => window.location.href = '/telemed-x/vendor-onboarding'}>
+            Register Your Facility
+          </Button>
+        </div>
+      </TelemedXShell>
     );
   }
 
@@ -228,50 +241,48 @@ export function VendorAdminPortal() {
   };
 
   return (
-    <div className="animate-fade-in space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Icon className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold">{vendor.name}</h1>
-            <p className="text-sm text-muted-foreground">Vendor Admin Portal</p>
-          </div>
+    <TelemedXShell
+      portal="Partner portal"
+      icon={Icon}
+      accent="sky"
+      subtitle={`${vendor.name} · ${vendor.type}`}
+      maxWidth="max-w-6xl"
+      actions={
+        <>
+          <Badge variant="outline" className="gap-1 border-white/70 bg-white/60"><ClipboardList className="h-3 w-3" />{pending.length} Incoming</Badge>
+          <Badge variant="outline" className="gap-1 border-white/70 bg-white/60"><Package className="h-3 w-3" />{inProgress.length} Active</Badge>
+        </>
+      }
+    >
+      <div className="space-y-6">
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            { label: 'Incoming', count: pending.length, icon: Bell, color: 'text-yellow-600' },
+            { label: 'In Progress', count: inProgress.length, icon: Package, color: 'text-purple-600' },
+            { label: 'Completed', count: completed.length, icon: CheckCircle, color: 'text-green-600' },
+            { label: 'Total', count: referrals.length, icon: FileText, color: 'text-primary' },
+          ].map((s, index) => (
+            <Card key={s.label} className="tx-hover animate-rise rounded-2xl" style={{ animationDelay: `${index * 45}ms` }}>
+              <CardContent className="flex items-center gap-3 p-4">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/70 ring-1 ring-border/60">
+                  <s.icon className={`h-5 w-5 ${s.color}`} />
+                </span>
+                <div>
+                  <p className="text-2xl font-bold">{s.count}</p>
+                  <p className="text-xs text-muted-foreground">{s.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-        <div className="flex gap-2">
-          <Badge variant="outline" className="gap-1"><ClipboardList className="h-3 w-3" />{pending.length} Incoming</Badge>
-          <Badge variant="outline" className="gap-1"><Package className="h-3 w-3" />{inProgress.length} Active</Badge>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Incoming', count: pending.length, icon: Bell, color: 'text-yellow-600' },
-          { label: 'In Progress', count: inProgress.length, icon: Package, color: 'text-purple-600' },
-          { label: 'Completed', count: completed.length, icon: CheckCircle, color: 'text-green-600' },
-          { label: 'Total', count: referrals.length, icon: FileText, color: 'text-primary' },
-        ].map(s => (
-          <Card key={s.label}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <s.icon className={`h-5 w-5 ${s.color}`} />
-              <div>
-                <p className="text-2xl font-bold">{s.count}</p>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {/* Referral Tabs */}
       <Tabs defaultValue="incoming">
-        <TabsList>
-          <TabsTrigger value="incoming">Incoming ({pending.length})</TabsTrigger>
-          <TabsTrigger value="active">Active ({inProgress.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completed.length})</TabsTrigger>
+        <TabsList className="rounded-xl border border-white/70 bg-white/60 p-1 shadow-sm">
+          <TabsTrigger value="incoming" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Incoming ({pending.length})</TabsTrigger>
+          <TabsTrigger value="active" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Active ({inProgress.length})</TabsTrigger>
+          <TabsTrigger value="completed" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Completed ({completed.length})</TabsTrigger>
         </TabsList>
 
         {(['incoming', 'active', 'completed'] as const).map(tab => {
@@ -284,7 +295,7 @@ export function VendorAdminPortal() {
                 ) : (
                   <div className="space-y-2">
                     {list.map(ref => (
-                      <Card key={ref.id} className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      <Card key={ref.id} className="tx-hover cursor-pointer rounded-2xl hover:border-primary/30 hover:bg-white/70"
                         onClick={() => openReferralDetail(ref)}>
                         <CardContent className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -446,6 +457,7 @@ export function VendorAdminPortal() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </TelemedXShell>
   );
 }

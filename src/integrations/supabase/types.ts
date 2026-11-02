@@ -3244,6 +3244,20 @@ export type Database = {
         Args: { _user_id: string; _vendor_id: string }
         Returns: boolean
       }
+      latest_patient_vitals: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          patient_user_id: string
+          heart_rate: number | null
+          spo2: number | null
+          temperature: number | null
+          blood_pressure_systolic: number | null
+          blood_pressure_diastolic: number | null
+          blood_glucose: number | null
+          weight: number | null
+          recorded_at: string
+        }[]
+      }
     }
     Enums: {
       app_role:

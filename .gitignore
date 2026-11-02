@@ -37,3 +37,6 @@ android/local.properties
 keys
 *.keystore
 *.jks
+
+.vercel
+.env*

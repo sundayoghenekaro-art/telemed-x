@@ -53,6 +53,7 @@ export type ActionPermission =
   | 'action:write_radiology_report'
   | 'action:admit_patient'
   | 'action:discharge_patient'
+  | 'action:create_invoice'
   | 'action:manage_billing'
   | 'action:manage_staff'
   | 'action:manage_queue'
@@ -104,6 +105,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'action:write_radiology_report',
   'action:admit_patient',
   'action:discharge_patient',
+  'action:create_invoice',
   'action:manage_billing',
   'action:manage_staff',
   'action:manage_queue',
@@ -117,10 +119,23 @@ export const ALL_PERMISSIONS: Permission[] = [
   'action:report_public_health',
 ];
 
+// Clinical ordering belongs to the clinicians who are accountable for it, and
+// invoices are raised by finance. Administrators run the platform and may see
+// every screen, but they do not act on a patient's record or bill on their
+// behalf.
+const ADMIN_BLOCKED_ACTIONS: ActionPermission[] = [
+  'action:prescribe_medication',
+  'action:order_lab_test',
+  'action:order_imaging',
+  'action:create_invoice',
+];
+
 // Single source of truth for staff access. Navigation, route guards, dashboard
 // widgets and action buttons all read this table, so they cannot drift apart.
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  admin: ALL_PERMISSIONS,
+  admin: ALL_PERMISSIONS.filter(
+    (permission) => !ADMIN_BLOCKED_ACTIONS.includes(permission as ActionPermission),
+  ),
 
   physician: [
     'screen:dashboard',
@@ -231,6 +246,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'screen:dashboard',
     'screen:billing',
     'widget:alerts',
+    'action:create_invoice',
     'action:manage_billing',
     'action:check_insurance',
     'action:settle_insurance',

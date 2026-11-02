@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, Receipt, AlertTriangle, CheckCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Banknote, Receipt, AlertTriangle, CheckCircle } from 'lucide-react';
 import { monthlyRevenue, revenueByDepartment, type Invoice, type Payment, type InsuranceClaim } from '@/data/billingMockData';
 
 interface RevenueDashboardProps {
@@ -10,7 +10,7 @@ interface RevenueDashboardProps {
 }
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
 }
 
 function formatCompact(value: number) {
@@ -40,7 +40,7 @@ export function RevenueDashboard({ invoices, payments, claims }: RevenueDashboar
                 <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-primary" />
+                <Banknote className="h-5 w-5 text-primary" />
               </div>
             </div>
           </CardContent>

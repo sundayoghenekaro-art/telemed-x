@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { format, parseISO, subDays } from 'date-fns';
+import { buildSampleVitals, isDemoPatientId } from '@/lib/demoVitals';
+import { VITALS_SERIES_LIMIT } from '@/lib/pagination';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Heart, Thermometer, Droplets, Wind, Weight, Activity, Moon, Loader2, Plus, Watch, Wifi, WifiOff } from 'lucide-react';
 
@@ -45,13 +47,23 @@ const WEARABLES = [
   { id: 'garmin', name: 'Garmin', icon: Watch },
 ];
 
-export function VitalsDashboard({ patientUserId }: { patientUserId: string }) {
+export function VitalsDashboard({
+  patientUserId,
+  autoOpenLog = false,
+  onAutoLogConsumed,
+}: {
+  patientUserId: string;
+  autoOpenLog?: boolean;
+  onAutoLogConsumed?: () => void;
+}) {
   const [vitals, setVitals] = useState<Vital[]>([]);
   const [loading, setLoading] = useState(true);
   const [logOpen, setLogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [rangeDays, setRangeDays] = useState(7);
   const [connectedDevice, setConnectedDevice] = useState<string | null>(null);
+  const [sampleData, setSampleData] = useState(false);
+  const [truncated, setTruncated] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Form
@@ -72,10 +84,18 @@ export function VitalsDashboard({ patientUserId }: { patientUserId: string }) {
       .channel('patient-vitals-rt')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'patient_vitals', filter: `patient_user_id=eq.${patientUserId}` }, (payload) => {
         setVitals(prev => [payload.new as Vital, ...prev]);
+        setSampleData(false);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [patientUserId]);
+
+  useEffect(() => {
+    if (autoOpenLog) {
+      setLogOpen(true);
+      onAutoLogConsumed?.();
+    }
+  }, [autoOpenLog, onAutoLogConsumed]);
 
   useEffect(() => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
@@ -88,8 +108,16 @@ export function VitalsDashboard({ patientUserId }: { patientUserId: string }) {
       .select('*')
       .eq('patient_user_id', patientUserId)
       .gte('recorded_at', subDays(new Date(), 30).toISOString())
-      .order('recorded_at', { ascending: false });
-    if (data) setVitals(data as Vital[]);
+      .order('recorded_at', { ascending: false })
+      .limit(VITALS_SERIES_LIMIT);
+    if (data && data.length > 0) {
+      setVitals(data as Vital[]);
+      setTruncated(data.length >= VITALS_SERIES_LIMIT);
+      setSampleData(false);
+    } else if (isDemoPatientId(patientUserId)) {
+      setVitals(buildSampleVitals() as Vital[]);
+      setSampleData(true);
+    }
     setLoading(false);
   };
 
@@ -157,7 +185,17 @@ export function VitalsDashboard({ patientUserId }: { patientUserId: string }) {
     <div className="space-y-6">
       {/* Top actions */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {sampleData && (
+            <Badge variant="outline" className="border-amber-400/60 bg-amber-50/80 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+              Sample data
+            </Badge>
+          )}
+          {truncated && (
+            <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Latest {VITALS_SERIES_LIMIT.toLocaleString()} readings
+            </Badge>
+          )}
           {connectedDevice ? (
             <Badge variant="outline" className="flex items-center gap-1 text-primary border-primary">
               <Wifi className="h-3 w-3" /> {WEARABLES.find(w => w.id === connectedDevice)?.name} connected

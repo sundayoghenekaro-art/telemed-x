@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Shield, Crosshair, Star, Building2, Activity, Lock, Heart,
   AlertTriangle, ChevronRight, ArrowLeft, Users, Radio, Ambulance,
-  Plane, Anchor, MapPin, Stethoscope, FileText,
+  Plane, Anchor, MapPin, Stethoscope, FileText, GraduationCap, BookOpen,
 } from 'lucide-react';
 
 interface DefenseStaffProfile {
@@ -139,6 +139,10 @@ function DefenseLanding({ navigate, onSelectView }: { navigate: (path: string) =
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="ghost" className="hidden text-white/70 hover:text-white hover:bg-white/10 xl:inline-flex"
+              onClick={() => navigate('/defense-health/learning')}>
+              <GraduationCap className="h-4 w-4 mr-2" /> Learning Hub
+            </Button>
             <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10"
               onClick={() => navigate('/telemed-x')}>
               <Heart className="h-4 w-4 mr-2" /> Public Hospital Portal
@@ -215,6 +219,17 @@ function DefenseLanding({ navigate, onSelectView }: { navigate: (path: string) =
                   Super Admin Command
                   <ChevronRight className="h-5 w-5 ml-2" />
                 </Button>
+
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-emerald-400/30 bg-emerald-400/5 text-emerald-300 hover:bg-emerald-400/10 hover:text-emerald-200 text-base px-8 py-6 rounded-xl font-semibold"
+                  onClick={() => navigate('/defense-health/learning')}
+                >
+                  <GraduationCap className="h-5 w-5 mr-2" />
+                  Learning & Communications Hub
+                  <ChevronRight className="h-5 w-5 ml-2" />
+                </Button>
               </div>
             </div>
           </div>
@@ -236,6 +251,65 @@ function DefenseLanding({ navigate, onSelectView }: { navigate: (path: string) =
                 not accessible from the public hospital system. All data is protected by security clearance
                 levels and defense-specific access policies.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Learning & Communications Hub */}
+      <section className="border-t border-white/10 py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="rounded-2xl border border-emerald-400/20 p-8 md:p-10" style={{ background: 'linear-gradient(135deg, hsl(160 45% 40% / 0.10), hsl(202 57% 45% / 0.06))' }}>
+            <div className="grid gap-10 lg:grid-cols-[1.25fr_1fr] lg:items-center">
+              <div>
+                <Badge className="mb-5 border-emerald-400/30 bg-emerald-400/10 text-emerald-300 px-3 py-1" variant="outline">
+                  <GraduationCap className="h-3 w-3 mr-2" />
+                  New — Learning & Communications Hub
+                </Badge>
+                <h3 className="text-3xl font-bold tracking-tight">Train, verify and communicate across the network</h3>
+                <p className="mt-4 text-sm leading-relaxed text-white/55 max-w-xl">
+                  A permission-scoped learning service for clinical and non-clinical defence personnel. Publish official
+                  HQ updates, deliver mandatory training to targeted audiences, record competency sign-offs, and give
+                  deployed staff offline access — while keeping restricted titles and records out of unauthorised views.
+                </p>
+                <div className="mt-7 flex flex-col sm:flex-row gap-3">
+                  <Button
+                    size="lg"
+                    className="text-white border-0 font-semibold rounded-xl"
+                    style={{ background: 'linear-gradient(135deg, hsl(160 45% 40%), hsl(160 45% 32%))' }}
+                    onClick={() => navigate('/defense-health/learning')}
+                  >
+                    <GraduationCap className="h-5 w-5 mr-2" />
+                    Enter Learning Hub
+                    <ChevronRight className="h-5 w-5 ml-2" />
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-white/15 bg-white/5 text-white hover:bg-white/10 rounded-xl"
+                    onClick={() => navigate('/defense-health/learning')}
+                  >
+                    <BookOpen className="h-5 w-5 mr-2" /> View library & courses
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                {[
+                  { icon: Radio, title: 'Official HQ updates', desc: 'Clearance-filtered announcements with acknowledgements' },
+                  { icon: GraduationCap, title: 'Courses & paths', desc: 'Mandatory, refresher and role-based training' },
+                  { icon: Shield, title: 'Competency sign-off', desc: 'Viewed → knowledge → practical → signed off' },
+                  { icon: Users, title: 'Assignments & reports', desc: 'Unit-scoped completion without ranking people' },
+                  { icon: FileText, title: 'Grounded AI tutor', desc: 'Cites approved content only — never diagnoses' },
+                  { icon: Lock, title: 'Offline & revocable', desc: 'Policy-driven downloads, audio-only, watermarking' },
+                ].map(feature => (
+                  <div key={feature.title} className="rounded-xl border border-white/10 bg-black/20 p-4">
+                    <feature.icon className="h-4 w-4 text-emerald-300" />
+                    <p className="mt-2 text-xs font-semibold text-white/85">{feature.title}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-white/40">{feature.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

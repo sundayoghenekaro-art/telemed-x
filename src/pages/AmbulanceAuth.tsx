@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,14 +8,55 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Ambulance, Eye, EyeOff, ArrowLeft, Loader2, Phone, MapPin } from 'lucide-react';
+import { Ambulance, Eye, EyeOff, ArrowLeft, Loader2, MailCheck, Phone, MapPin, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { TelemedXAuthScene } from '@/components/telemedx/TelemedXAuthScene';
+
+interface AmbulanceProfile {
+  full_name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  organization_name: string | null;
+}
+
+type AuthUser = { id: string; email?: string; user_metadata?: unknown };
+
+// Sign-up only returns a session when email confirmation is disabled. Without one
+// the crew insert runs as anon and RLS rejects it, so the draft is parked in user
+// metadata and filed the first time the account signs in.
+function readAmbulanceProfile(meta: unknown, fallbackEmail: string): AmbulanceProfile | null {
+  const stored = (meta as { ambulance_profile?: AmbulanceProfile } | null)?.ambulance_profile;
+  if (!stored?.full_name) return null;
+  return { ...stored, email: stored.email || fallbackEmail, role: stored.role || 'paramedic' };
+}
+
+async function ensureAmbulanceAccount(user: AuthUser) {
+  const { data: existing } = await supabase
+    .from('ambulance_accounts')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (existing) return { account: existing, error: null };
+
+  const profile = readAmbulanceProfile(user.user_metadata, user.email ?? '');
+  if (!profile) return { account: null, error: null };
+
+  const { data: created, error } = await supabase
+    .from('ambulance_accounts')
+    .insert({ user_id: user.id, ...profile, status: 'active' })
+    .select('*')
+    .maybeSingle();
+  return { account: created, error };
+}
 
 export function AmbulanceAuth({ onLogin }: { onLogin: (userId: string, account: any) => void }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<'login' | 'signup'>(searchParams.get('mode') === 'signup' ? 'signup' : 'login');
+  const [awaitingEmail, setAwaitingEmail] = useState<string | null>(null);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -35,14 +76,11 @@ export function AmbulanceAuth({ onLogin }: { onLogin: (userId: string, account: 
       });
       if (error) throw error;
 
-      const { data: account, error: accError } = await supabase
-        .from('ambulance_accounts')
-        .select('*')
-        .eq('user_id', data.user.id)
-        .maybeSingle();
+      const { account, error: accError } = await ensureAmbulanceAccount(data.user);
 
-      if (accError || !account) {
-        toast.error('No ambulance crew account found. Please sign up first.');
+      if (accError) throw accError;
+      if (!account) {
+        toast.error('No ambulance crew account found for this login. Please sign up again.');
         await supabase.auth.signOut();
         return;
       }
@@ -53,8 +91,11 @@ export function AmbulanceAuth({ onLogin }: { onLogin: (userId: string, account: 
       }
 
       onLogin(data.user.id, account);
-    } catch {
-      toast.error('Could not sign in. Please check your credentials.');
+    } catch (err: unknown) {
+      console.error('Ambulance sign-in failed:', err);
+      toast.error(err instanceof Error && err.message.length < 120
+        ? err.message
+        : 'Could not sign in. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -70,176 +111,230 @@ export function AmbulanceAuth({ onLogin }: { onLogin: (userId: string, account: 
       toast.error('Password must be at least 8 characters');
       return;
     }
+
+    const profile: AmbulanceProfile = {
+      full_name: form.fullName,
+      email: form.email,
+      phone: form.phone || null,
+      role: form.role,
+      organization_name: form.organizationName || null,
+    };
+
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
-        options: { data: { name: form.fullName, role: 'ambulance_crew' } },
+        options: { data: { name: form.fullName, role: 'ambulance_crew', ambulance_profile: profile } },
       });
       if (error) throw error;
-      if (!data.user) throw new Error('Signup failed');
+      if (!data.user) throw new Error('Sign-up did not return an account');
 
-      const { error: accError } = await supabase
-        .from('ambulance_accounts')
-        .insert({
-          user_id: data.user.id,
-          full_name: form.fullName,
-          email: form.email,
-          phone: form.phone || null,
-          role: form.role,
-          organization_name: form.organizationName || null,
-          status: 'active',
-        });
+      if (data.user.identities?.length === 0) {
+        setLoginEmail(form.email);
+        setTab('login');
+        toast.error('An account with this email already exists. Sign in to continue.');
+        return;
+      }
+
+      if (!data.session) {
+        setAwaitingEmail(form.email);
+        toast.info('Account created. Confirm your email, then sign in to finish.');
+        return;
+      }
+
+      const { account, error: accError } = await ensureAmbulanceAccount(data.user);
       if (accError) throw accError;
+      if (!account) throw new Error('Crew profile could not be created. Please try again.');
 
       toast.success('Ambulance account created! You are now on duty.');
-      onLogin(data.user.id, { full_name: form.fullName, role: form.role });
-    } catch (err: any) {
-      toast.error(err.message || 'Could not create your ambulance account.');
+      onLogin(data.user.id, account);
+    } catch (err: unknown) {
+      console.error('Ambulance registration failed:', err);
+      const message = err instanceof Error ? err.message : '';
+      if (/rate limit/i.test(message)) {
+        toast.error('Sign-up emails are rate limited right now. Please try again later.');
+      } else if (/already registered|already exists|duplicate/i.test(message)) {
+        setLoginEmail(form.email);
+        setTab('login');
+        toast.error('An account with this email already exists. Sign in instead.');
+      } else {
+        toast.error(message && message.length < 120
+          ? message
+          : 'Could not create your ambulance account.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4"
-      style={{ background: 'linear-gradient(135deg, hsl(222 47% 11%), hsl(220 60% 25%), hsl(0 72% 45%))' }}>
-      <div className="w-full max-w-xl space-y-6">
-        <div className="text-center flex flex-col items-center gap-3">
-          <div className="p-3 rounded-2xl bg-white/10 backdrop-blur">
-            <Ambulance className="h-8 w-8 text-red-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Telemed-X Ambulance</h1>
-            <p className="text-sm text-white/60">Emergency Response &amp; Virtual Care Network</p>
-          </div>
+    <TelemedXAuthScene
+      icon={Ambulance}
+      tone="rose"
+      title="Telemed-X Ambulance"
+      tagline="Emergency response and virtual care network"
+      trust={[
+        { icon: Phone, label: '24/7 dispatch' },
+        { icon: MapPin, label: 'Live facility routing' },
+        { icon: ShieldCheck, label: 'Verified crews' },
+      ]}
+      footer={
+        <div className="flex flex-col items-center gap-2">
+          <Button variant="ghost" className="gap-2 text-slate-300 hover:bg-white/10 hover:text-white"
+            onClick={() => navigate('/telemed-x')}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Telemed-X
+          </Button>
         </div>
+      }
+    >
+      {awaitingEmail ? (
+        <Card className="border-white/60 bg-white/85 shadow-float backdrop-blur-2xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <MailCheck className="h-5 w-5 text-rose-600" />
+              Confirm your email
+            </CardTitle>
+            <CardDescription>
+              We sent a confirmation link to{' '}
+              <span className="font-medium text-foreground">{awaitingEmail}</span>. Open it, then sign in —
+              your crew account is created automatically on first sign-in.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              className="w-full"
+              onClick={() => {
+                setLoginEmail(awaitingEmail);
+                setAwaitingEmail(null);
+                setTab('login');
+              }}
+            >
+              Go to sign in
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              No email? Check your spam folder or ask your dispatcher to review email delivery.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+      <Tabs value={tab} onValueChange={(value) => setTab(value as 'login' | 'signup')}>
+        <TabsList className="grid w-full grid-cols-2 rounded-xl border border-white/10 bg-white/[0.07] p-1 backdrop-blur-xl">
+          <TabsTrigger value="login" className="rounded-lg text-slate-300 transition data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+            Sign In
+          </TabsTrigger>
+          <TabsTrigger value="signup" className="rounded-lg text-slate-300 transition data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+            Join Ambulance Crew
+          </TabsTrigger>
+        </TabsList>
 
-        <Tabs defaultValue={searchParams.get('mode') === 'signup' ? 'signup' : 'login'}>
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="login">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Join Ambulance Crew</TabsTrigger>
-          </TabsList>
+        <TabsContent value="login">
+          <Card className="border-white/60 bg-white/85 shadow-float backdrop-blur-2xl">
+            <CardHeader>
+              <CardTitle className="text-xl">Welcome back</CardTitle>
+              <CardDescription>Sign in to the ambulance dispatch console</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Email address</Label>
+                  <Input type="email" placeholder="you@ambulance.ng" className="bg-white/70"
+                    value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Password</Label>
+                  <div className="relative">
+                    <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••"
+                      value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)}
+                      required className="bg-white/70 pr-10" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Signing in…</> : 'Sign In'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="login">
-            <Card className="border-border/50 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-xl">Welcome back</CardTitle>
-                <CardDescription>Sign in to the ambulance dispatch console</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Email address</Label>
-                    <Input type="email" placeholder="you@ambulance.ng"
-                      value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+        <TabsContent value="signup">
+          <Card className="border-white/60 bg-white/85 shadow-float backdrop-blur-2xl">
+            <CardHeader>
+              <CardTitle className="text-xl">Join Ambulance Crew</CardTitle>
+              <CardDescription>Register as an emergency response crew member</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Full Name *</Label>
+                    <Input placeholder="Your full name" value={form.fullName} className="bg-white/70"
+                      onChange={(e) => setForm({ ...form, fullName: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
-                    <Label>Password</Label>
+                    <Label>Email *</Label>
+                    <Input type="email" placeholder="you@ambulance.ng" value={form.email} className="bg-white/70"
+                      onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Phone *</Label>
+                    <Input placeholder="+234 800 000 0000" value={form.phone} className="bg-white/70"
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Role *</Label>
+                    <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
+                      <SelectTrigger className="bg-white/70"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="paramedic">Paramedic</SelectItem>
+                        <SelectItem value="dispatcher">Dispatcher</SelectItem>
+                        <SelectItem value="driver">Driver</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Organization</Label>
+                    <Input placeholder="Ambulance service name" value={form.organizationName} className="bg-white/70"
+                      onChange={(e) => setForm({ ...form, organizationName: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Password *</Label>
                     <div className="relative">
-                      <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••"
-                        value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)}
-                        required className="pr-10" />
+                      <Input type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters"
+                        value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        required className="bg-white/70 pr-10" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Signing in…</> : 'Sign In'}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="signup">
-            <Card className="border-border/50 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-xl">Join Ambulance Crew</CardTitle>
-                <CardDescription>Register as an emergency response crew member</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label>Full Name *</Label>
-                      <Input placeholder="Your full name" value={form.fullName}
-                        onChange={(e) => setForm({ ...form, fullName: e.target.value })} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Email *</Label>
-                      <Input type="email" placeholder="you@ambulance.ng" value={form.email}
-                        onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Phone *</Label>
-                      <Input placeholder="+234 800 000 0000" value={form.phone}
-                        onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Role *</Label>
-                      <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="paramedic">Paramedic</SelectItem>
-                          <SelectItem value="dispatcher">Dispatcher</SelectItem>
-                          <SelectItem value="driver">Driver</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Organization</Label>
-                      <Input placeholder="Ambulance service name" value={form.organizationName}
-                        onChange={(e) => setForm({ ...form, organizationName: e.target.value })} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Password *</Label>
-                      <div className="relative">
-                        <Input type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters"
-                          value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                          required className="pr-10" />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Confirm Password *</Label>
-                      <Input type="password" placeholder="Re-enter password"
-                        value={form.confirmPassword}
-                        onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} required />
-                    </div>
+                  <div className="space-y-2">
+                    <Label>Confirm Password *</Label>
+                    <Input type="password" placeholder="Re-enter password" className="bg-white/70"
+                      value={form.confirmPassword}
+                      onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} required />
                   </div>
-                  <Alert>
-                    <AlertDescription className="text-sm text-muted-foreground">
-                      By joining you agree to respond to emergency dispatch requests through the Telemed-X network.
-                    </AlertDescription>
-                  </Alert>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating account…</> : 'Create Ambulance Account'}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        <div className="flex flex-col items-center gap-2">
-          <Button variant="ghost" className="gap-2 text-white/60 hover:text-white hover:bg-white/10"
-            onClick={() => navigate('/telemed-x')}>
-            <ArrowLeft className="h-4 w-4" />
-            Back to Telemed-X
-          </Button>
-          <div className="flex items-center gap-4 text-xs text-white/40">
-            <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> Emergency Dispatch</span>
-            <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Nearest Facility Routing</span>
-          </div>
-        </div>
-      </div>
-    </div>
+                </div>
+                <Alert>
+                  <AlertDescription className="text-sm text-muted-foreground">
+                    By joining you agree to respond to emergency dispatch requests through the Telemed-X network.
+                  </AlertDescription>
+                </Alert>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating account…</> : 'Create Ambulance Account'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      )}
+    </TelemedXAuthScene>
   );
 }

@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
-import { Plus, FileText, Download, Trash2, Search, Upload, Loader2, Image, File, Syringe, ClipboardList } from 'lucide-react';
+import { Plus, FileText, Download, Trash2, Search, Upload, Loader2, Image, File, Syringe, ClipboardList, ExternalLink } from 'lucide-react';
+import { PAGE_SIZE, afterCursor, hasNextPage, pageCursor, type PageCursor } from '@/lib/pagination';
+import { signedUrl, storagePathFrom } from '@/lib/storage';
 
 interface MedicalRecord {
   id: string;
@@ -25,6 +27,9 @@ interface MedicalRecord {
   created_at: string;
 }
 
+const BUCKET = 'medical-records';
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
+
 const RECORD_TYPES = [
   { value: 'lab_test', label: 'Lab Test', icon: ClipboardList },
   { value: 'lab_report', label: 'Lab Report', icon: ClipboardList },
@@ -36,9 +41,17 @@ const RECORD_TYPES = [
   { value: 'other', label: 'Other', icon: FileText },
 ];
 
+/** PostgREST `or()` splits on commas, so strip the characters that would break it. */
+function orTerm(value: string) {
+  return value.replace(/[,()%*]/g, ' ').trim();
+}
+
 export function MedicalRecordsTab({ patientUserId }: { patientUserId: string }) {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<PageCursor | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -52,33 +65,69 @@ export function MedicalRecordsTab({ patientUserId }: { patientUserId: string }) 
   const [notes, setNotes] = useState('');
   const [file, setFile] = useState<File | null>(null);
 
-  useEffect(() => { fetchRecords(); }, [patientUserId]);
+  useEffect(() => {
+    const delay = search ? 300 : 0;
+    const timer = setTimeout(() => { void loadPage('replace'); }, delay);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientUserId, search, filterType]);
 
-  const fetchRecords = async () => {
-    setLoading(true);
-    const { data } = await supabase
+  const loadPage = async (mode: 'replace' | 'append') => {
+    const cursorForPage = mode === 'append' ? cursor : null;
+    if (mode === 'append' && !cursorForPage) return;
+
+    if (mode === 'append') setLoadingMore(true);
+    else setLoading(true);
+
+    let query = supabase
       .from('patient_medical_records')
       .select('*')
-      .eq('patient_user_id', patientUserId)
-      .order('created_at', { ascending: false });
-    if (data) setRecords(data as MedicalRecord[]);
-    setLoading(false);
+      .eq('patient_user_id', patientUserId);
+
+    if (filterType !== 'all') query = query.eq('record_type', filterType);
+
+    const term = orTerm(search);
+    if (term) query = query.or(`title.ilike.%${term}%,provider_name.ilike.%${term}%`);
+
+    const ordered = afterCursor(
+      query.order('created_at', { ascending: false }).order('id', { ascending: false }),
+      cursorForPage,
+      'created_at',
+    );
+
+    const { data, error } = await ordered.limit(PAGE_SIZE + 1);
+
+    if (error) {
+      toast.error('Could not load medical records.');
+      if (mode === 'replace') setRecords([]);
+    } else {
+      const rows = (data ?? []) as MedicalRecord[];
+      const page = rows.slice(0, PAGE_SIZE);
+      setRecords(prev => (mode === 'append' ? [...prev, ...page] : page));
+      setHasMore(hasNextPage(rows));
+      setCursor(pageCursor(page, 'created_at'));
+    }
+
+    if (mode === 'append') setLoadingMore(false);
+    else setLoading(false);
   };
 
   const handleUpload = async () => {
     if (!title.trim()) { toast.error('Title is required'); return; }
+    if (file && file.size > MAX_FILE_BYTES) {
+      toast.error('File must be under 25 MB. Compress or split the document first.');
+      return;
+    }
     setUploading(true);
 
-    let fileUrl: string | null = null;
+    let filePath: string | null = null;
     let fileName: string | null = null;
     let fileSize: number | null = null;
 
     if (file) {
-      const filePath = `${patientUserId}/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage.from('medical-records').upload(filePath, file);
+      filePath = `${patientUserId}/${Date.now()}_${file.name}`;
+      const { error } = await supabase.storage.from(BUCKET).upload(filePath, file);
       if (error) { toast.error('File upload failed'); setUploading(false); return; }
-      const { data: urlData } = supabase.storage.from('medical-records').getPublicUrl(filePath);
-      fileUrl = urlData.publicUrl;
       fileName = file.name;
       fileSize = file.size;
     }
@@ -90,7 +139,7 @@ export function MedicalRecordsTab({ patientUserId }: { patientUserId: string }) 
       provider_name: providerName || null,
       record_date: recordDate || null,
       notes: notes || null,
-      file_url: fileUrl,
+      file_url: filePath,
       file_name: fileName,
       file_size: fileSize,
     });
@@ -100,45 +149,37 @@ export function MedicalRecordsTab({ patientUserId }: { patientUserId: string }) 
       toast.success('Record uploaded');
       setDialogOpen(false);
       resetForm();
-      fetchRecords();
+      await loadPage('replace');
     }
     setUploading(false);
   };
 
   const handleDelete = async (record: MedicalRecord) => {
-    if (record.file_url) {
-      const path = record.file_url.split('/medical-records/')[1];
-      if (path) await supabase.storage.from('medical-records').remove([path]);
-    }
+    const path = storagePathFrom(record.file_url, BUCKET);
+    if (path) await supabase.storage.from(BUCKET).remove([path]);
     await supabase.from('patient_medical_records').delete().eq('id', record.id);
     toast.success('Record deleted');
-    fetchRecords();
+    await loadPage('replace');
+  };
+
+  const handleOpen = async (record: MedicalRecord) => {
+    const url = await signedUrl(BUCKET, record.file_url);
+    if (!url) { toast.error('Could not open this file.'); return; }
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleDownload = async (record: MedicalRecord) => {
-    if (!record.file_url) return;
-    const path = record.file_url.split('/medical-records/')[1];
-    if (!path) return;
-    const { data, error } = await supabase.storage.from('medical-records').download(path);
-    if (error || !data) { toast.error('Download failed'); return; }
-    const url = URL.createObjectURL(data);
+    const url = await signedUrl(BUCKET, record.file_url, undefined, record.file_name || 'record');
+    if (!url) { toast.error('Download failed'); return; }
     const a = document.createElement('a');
     a.href = url;
-    a.download = record.file_name || 'file';
+    a.download = record.file_name || 'record';
     a.click();
-    URL.revokeObjectURL(url);
   };
 
   const resetForm = () => {
     setTitle(''); setRecordType('other'); setProviderName(''); setRecordDate(''); setNotes(''); setFile(null);
   };
-
-  const filtered = records.filter(r => {
-    const matchSearch = r.title.toLowerCase().includes(search.toLowerCase()) ||
-      (r.provider_name || '').toLowerCase().includes(search.toLowerCase());
-    const matchType = filterType === 'all' || r.record_type === filterType;
-    return matchSearch && matchType;
-  });
 
   const typeConfig = Object.fromEntries(RECORD_TYPES.map(t => [t.value, t]));
 
@@ -174,7 +215,7 @@ export function MedicalRecordsTab({ patientUserId }: { patientUserId: string }) 
               <div><Label>Record Date</Label><Input type="date" value={recordDate} onChange={e => setRecordDate(e.target.value)} /></div>
               <div><Label>Notes</Label><Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Additional notes…" rows={2} /></div>
               <div>
-                <Label>File (PDF, Image, DICOM)</Label>
+                <Label>File (PDF, Image, DICOM · max 25 MB)</Label>
                 <Input type="file" accept=".pdf,.jpg,.jpeg,.png,.dcm,.dicom" onChange={e => setFile(e.target.files?.[0] || null)} />
               </div>
               <Button onClick={handleUpload} disabled={uploading} className="w-full">
@@ -187,7 +228,7 @@ export function MedicalRecordsTab({ patientUserId }: { patientUserId: string }) 
 
       {loading ? (
         <div className="text-center py-12"><Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /></div>
-      ) : filtered.length === 0 ? (
+      ) : records.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground space-y-2">
           <FileText className="h-12 w-12 mx-auto opacity-50" />
           <p className="font-medium">No medical records</p>
@@ -195,7 +236,7 @@ export function MedicalRecordsTab({ patientUserId }: { patientUserId: string }) 
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(record => {
+          {records.map(record => {
             const tc = typeConfig[record.record_type] || typeConfig.other;
             const Icon = tc.icon;
             return (
@@ -218,9 +259,14 @@ export function MedicalRecordsTab({ patientUserId }: { patientUserId: string }) 
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {record.file_url && (
-                        <Button variant="ghost" size="icon" onClick={() => handleDownload(record)} title="Download">
-                          <Download className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => handleOpen(record)} title="Open">
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDownload(record)} title="Download">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(record)} title="Delete" className="text-destructive hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
@@ -231,6 +277,13 @@ export function MedicalRecordsTab({ patientUserId }: { patientUserId: string }) 
               </Card>
             );
           })}
+          {hasMore && (
+            <div className="text-center pt-2">
+              <Button variant="outline" size="sm" onClick={() => loadPage('append')} disabled={loadingMore}>
+                {loadingMore ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Loading…</> : 'Load more'}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -97,13 +97,13 @@ export function RemotePatientMonitoring({ clinicianUserId }: { clinicianUserId: 
     setLoading(true);
     const [alertsRes, vitalsRes, thresholdsRes] = await Promise.all([
       supabase.from('rpm_alerts').select('*').order('created_at', { ascending: false }).limit(100),
-      supabase.from('patient_vitals').select('patient_user_id, heart_rate, spo2, temperature, blood_pressure_systolic, blood_pressure_diastolic, blood_glucose, weight, recorded_at').order('recorded_at', { ascending: false }).limit(500),
+      // One row per patient instead of pulling 500 readings and de-duplicating here.
+      supabase.rpc('latest_patient_vitals'),
       supabase.from('rpm_alert_thresholds').select('*'),
     ]);
 
     if (alertsRes.data) setAlerts(alertsRes.data as Alert[]);
 
-    // Group vitals by patient — latest reading per patient
     if (vitalsRes.data) {
       const byPatient: Record<string, PatientVital> = {};
       for (const v of vitalsRes.data as PatientVital[]) {

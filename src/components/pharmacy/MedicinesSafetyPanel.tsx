@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
-  BadgeEuro,
+  Banknote,
   ClipboardCheck,
   Download,
   PackageSearch,
@@ -23,9 +23,9 @@ import {
 } from '@/data/europeMockData';
 import { cn } from '@/lib/utils';
 
-const euro = new Intl.NumberFormat('de-DE', {
+const naira = new Intl.NumberFormat('en-NG', {
   style: 'currency',
-  currency: 'EUR',
+  currency: 'NGN',
   maximumFractionDigits: 2,
 });
 
@@ -145,7 +145,7 @@ export function MedicinesSafetyPanel({ canManage = false }: { canManage?: boolea
             <PackageSearch className="h-4 w-4" /> Shortages
           </TabsTrigger>
           <TabsTrigger value="pricing" className="gap-2">
-            <BadgeEuro className="h-4 w-4" /> Reference pricing
+            <Banknote className="h-4 w-4" /> Reference pricing
           </TabsTrigger>
           <TabsTrigger value="pv" className="gap-2">
             <AlertTriangle className="h-4 w-4" /> Pharmacovigilance
@@ -217,15 +217,15 @@ export function MedicinesSafetyPanel({ canManage = false }: { canManage?: boolea
                       <tr key={entry.medication} className="border-b border-border/60 last:border-0">
                         <td className="py-2 pr-3">{entry.medication}</td>
                         <td className="py-2 pr-3 font-mono text-xs">{entry.atc}</td>
-                        <td className="py-2 pr-3 text-right">{euro.format(entry.price)}</td>
-                        <td className="py-2 pr-3 text-right">{euro.format(entry.reference)}</td>
+                        <td className="py-2 pr-3 text-right">{naira.format(entry.price)}</td>
+                        <td className="py-2 pr-3 text-right">{naira.format(entry.reference)}</td>
                         <td className="py-2 text-right">
                           <Badge
                             variant={entry.status === 'above' ? 'destructive' : 'secondary'}
                             className="text-[10px]"
                           >
                             {entry.status === 'above'
-                              ? `+${euro.format(entry.price - entry.reference)}`
+                              ? `+${naira.format(entry.price - entry.reference)}`
                               : 'within'}
                           </Badge>
                         </td>

@@ -1,0 +1,12 @@
+node_modules
+.tools
+android
+dist
+keys
+.github
+docs
+.env
+.env.*
+supabase/.temp
+supabase/functions/.env
+TelemedX-Patient-20261030.apk

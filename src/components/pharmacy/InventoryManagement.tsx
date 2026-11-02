@@ -32,6 +32,11 @@ interface InventoryManagementProps {
   inventory: PharmacyInventoryItem[];
 }
 
+const naira = new Intl.NumberFormat('en-NG', {
+  style: 'currency',
+  currency: 'NGN',
+});
+
 export function InventoryManagement({ inventory }: InventoryManagementProps) {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'stock' | 'expiry'>('name');
@@ -141,7 +146,7 @@ export function InventoryManagement({ inventory }: InventoryManagementProps) {
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-success/10"><Package className="h-5 w-5 text-success" /></div>
               <div>
-                <p className="text-2xl font-bold">${stats.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                <p className="text-2xl font-bold">{naira.format(stats.totalValue)}</p>
                 <p className="text-xs text-muted-foreground">Total Value</p>
               </div>
             </div>
@@ -225,7 +230,7 @@ export function InventoryManagement({ inventory }: InventoryManagementProps) {
                         <Badge className={cn('text-xs', expiry.color)}>{expiry.label}</Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{item.location}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">${item.unitPrice.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-mono text-sm">{naira.format(item.unitPrice)}</TableCell>
                       <TableCell className="text-center">
                         <Button variant="ghost" size="icon-sm" onClick={() => setFdaDrug({ name: item.name, generic: item.genericName })} title="FDA Info">
                           <FileText className="h-3.5 w-3.5 text-primary" />

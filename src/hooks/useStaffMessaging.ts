@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface StaffChannel {
@@ -40,6 +40,8 @@ export function useStaffMessaging(userId: string | undefined, userRole: string |
   const [loading, setLoading] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const senderNamesRef = useRef<Map<string, string>>(new Map());
+  const activeChannelRef = useRef<string | null>(null);
 
   // Get channels the user should have access to based on role
   const allowedPairs = ROLE_CHANNELS.filter(ch => {
@@ -114,32 +116,50 @@ export function useStaffMessaging(userId: string | undefined, userRole: string |
 
     if (!channelData) return;
 
-    // Get last message and unread count for each channel
-    const enriched: StaffChannel[] = await Promise.all(
+    const { data: recent } = await supabase
+      .from('staff_messages')
+      .select('id, channel_id, sender_id, content, created_at')
+      .in('channel_id', channelIds)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    const lastByChannel = new Map<string, StaffMessage>();
+    for (const msg of (recent ?? []) as StaffMessage[]) {
+      if (!lastByChannel.has(msg.channel_id)) lastByChannel.set(msg.channel_id, msg);
+    }
+
+    // A busy channel can fill the window before a quiet one appears, so any
+    // channel still missing gets its own targeted lookup instead of a wrong banner.
+    for (const id of channelIds) {
+      if (lastByChannel.has(id)) continue;
+      const { data: lastMsg } = await supabase
+        .from('staff_messages')
+        .select('id, channel_id, sender_id, content, created_at')
+        .eq('channel_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (lastMsg) lastByChannel.set(id, lastMsg as StaffMessage);
+    }
+
+    const unreadByChannel = new Map<string, number>();
+    await Promise.all(
       channelData.map(async (ch) => {
         const lastRead = lastReadMap.get(ch.id) || ch.created_at;
-
         const { count } = await supabase
           .from('staff_messages')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('channel_id', ch.id)
           .gt('created_at', lastRead);
-
-        const { data: lastMsg } = await supabase
-          .from('staff_messages')
-          .select('*')
-          .eq('channel_id', ch.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        return {
-          ...ch,
-          unread_count: count || 0,
-          last_message: lastMsg,
-        } as StaffChannel;
+        unreadByChannel.set(ch.id, count ?? 0);
       })
     );
+
+    const enriched = channelData.map((ch) => ({
+      ...ch,
+      unread_count: unreadByChannel.get(ch.id) ?? 0,
+      last_message: lastByChannel.get(ch.id) ?? null,
+    })) as StaffChannel[];
 
     enriched.sort((a, b) => {
       const aTime = a.last_message?.created_at || a.created_at;
@@ -154,26 +174,26 @@ export function useStaffMessaging(userId: string | undefined, userRole: string |
   const fetchMessages = useCallback(async (channelId: string) => {
     const { data } = await supabase
       .from('staff_messages')
-      .select('*')
+      .select('id, channel_id, sender_id, content, created_at')
       .eq('channel_id', channelId)
       .order('created_at', { ascending: true })
       .limit(100);
 
-    if (data) {
-      // Enrich with sender names from profiles
-      const senderIds = [...new Set(data.map(m => m.sender_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name')
-        .in('user_id', senderIds);
+    if (!data) return;
 
-      const nameMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+    const senderIds = [...new Set(data.map(m => m.sender_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('user_id, full_name')
+      .in('user_id', senderIds);
 
-      setMessages(data.map(m => ({
-        ...m,
-        sender_name: nameMap.get(m.sender_id) || 'Unknown User',
-      })));
-    }
+    const nameMap = new Map((profiles ?? []).map(p => [p.user_id, p.full_name || 'Unknown User']));
+    for (const [id, name] of nameMap) senderNamesRef.current.set(id, name);
+
+    setMessages(data.map(m => ({
+      ...m,
+      sender_name: nameMap.get(m.sender_id) || 'Unknown User',
+    })));
   }, []);
 
   const selectChannel = useCallback(async (channelId: string) => {
@@ -278,31 +298,45 @@ export function useStaffMessaging(userId: string | undefined, userRole: string |
     return created.id;
   }, [userId, selectChannel, fetchChannels]);
 
-  // Realtime subscription
+  // Realtime subscription. Without the channel filter every connected client
+  // receives every message in the system; the key keeps one subscription across
+  // channel switches so messages are not missed during a resubscribe.
+  const channelKey = useMemo(() => channels.map(ch => ch.id).sort().join(','), [channels]);
+
   useEffect(() => {
-    if (!userId) return;
+    activeChannelRef.current = activeChannelId;
+  }, [activeChannelId]);
+
+  useEffect(() => {
+    if (!userId || !channelKey) return;
+
+    const subscribedIds = channelKey.split(',');
+    const filter = subscribedIds.length === 1
+      ? `channel_id=eq.${subscribedIds[0]}`
+      : `channel_id=in.(${subscribedIds.join(',')})`;
 
     subscriptionRef.current = supabase
-      .channel('staff-messages-realtime')
+      .channel(`staff-messages-${userId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'staff_messages' },
+        { event: 'INSERT', schema: 'public', table: 'staff_messages', filter },
         async (payload) => {
           const newMsg = payload.new as StaffMessage;
 
-          // Enrich with sender name
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('user_id', newMsg.sender_id)
-            .maybeSingle();
+          let senderName = senderNamesRef.current.get(newMsg.sender_id);
+          if (!senderName) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('user_id', newMsg.sender_id)
+              .maybeSingle();
+            senderName = profile?.full_name || 'Unknown User';
+            senderNamesRef.current.set(newMsg.sender_id, senderName);
+          }
 
-          const enrichedMsg = {
-            ...newMsg,
-            sender_name: profile?.full_name || 'Unknown User',
-          };
+          const enrichedMsg = { ...newMsg, sender_name: senderName };
 
-          if (newMsg.channel_id === activeChannelId) {
+          if (newMsg.channel_id === activeChannelRef.current) {
             setMessages(prev => [...prev, enrichedMsg]);
             // Mark as read immediately
             await supabase
@@ -311,19 +345,18 @@ export function useStaffMessaging(userId: string | undefined, userRole: string |
               .eq('channel_id', newMsg.channel_id)
               .eq('user_id', userId);
           } else if (newMsg.sender_id !== userId) {
-            // Increment unread for other channels
-            setChannels(prev => prev.map(ch =>
-              ch.id === newMsg.channel_id
-                ? { ...ch, unread_count: (ch.unread_count || 0) + 1, last_message: enrichedMsg }
-                : ch
-            ));
             setTotalUnread(prev => prev + 1);
           }
 
-          // Update last message in channel list
           setChannels(prev => prev.map(ch =>
             ch.id === newMsg.channel_id
-              ? { ...ch, last_message: enrichedMsg }
+              ? {
+                  ...ch,
+                  last_message: enrichedMsg,
+                  unread_count: newMsg.channel_id === activeChannelRef.current || newMsg.sender_id === userId
+                    ? ch.unread_count || 0
+                    : (ch.unread_count || 0) + 1,
+                }
               : ch
           ));
         }
@@ -333,7 +366,7 @@ export function useStaffMessaging(userId: string | undefined, userRole: string |
     return () => {
       subscriptionRef.current?.unsubscribe();
     };
-  }, [userId, activeChannelId]);
+  }, [userId, channelKey]);
 
   // Initialize on mount
   useEffect(() => {

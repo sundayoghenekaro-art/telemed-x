@@ -473,6 +473,13 @@
     background-size: 52px 52px;
   }
 
+  /* Glass treatment for raw module panels that use bg-card directly */
+  .bg-card {
+    background-color: hsl(var(--card) / 0.5) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(155%);
+    backdrop-filter: blur(18px) saturate(155%);
+  }
+
   .shadow-soft {
     box-shadow:
       0 1px 2px hsl(var(--foreground) / 0.04),
@@ -483,6 +490,95 @@
     box-shadow:
       0 2px 6px hsl(var(--foreground) / 0.05),
       0 24px 60px -20px hsl(var(--foreground) / 0.28);
+  }
+
+  /* ---- Telemed-X workspace glass ---- */
+  .glass-panel {
+    background-color: hsl(0 0% 100% / 0.55);
+    border: 1px solid hsl(0 0% 100% / 0.65);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    box-shadow:
+      0 1px 2px hsl(210 40% 20% / 0.04),
+      0 18px 44px -28px hsl(210 45% 25% / 0.38);
+  }
+
+  .glass-header {
+    background-color: hsl(0 0% 100% / 0.58);
+    border-bottom: 1px solid hsl(0 0% 100% / 0.7);
+    -webkit-backdrop-filter: blur(20px) saturate(165%);
+    backdrop-filter: blur(20px) saturate(165%);
+    box-shadow: 0 12px 32px -26px hsl(210 50% 25% / 0.55);
+  }
+
+  .glass-dark {
+    background-color: rgba(8, 23, 33, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    backdrop-filter: blur(18px) saturate(150%);
+  }
+
+  .tx-nav-active {
+    color: #fff;
+    background-image: linear-gradient(135deg, hsl(191 76% 40%), hsl(163 56% 38%));
+    box-shadow: 0 14px 28px -16px hsl(190 80% 28% / 0.8);
+  }
+
+  .tx-hover {
+    transition:
+      transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.32s ease,
+      background-color 0.32s ease;
+  }
+
+  .tx-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 26px 52px -32px hsl(200 60% 25% / 0.45);
+  }
+
+  .animate-rise {
+    animation: tx-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes tx-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 14px, 0) scale(0.995);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-header-in {
+    animation: tx-header-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes tx-header-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -14px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-glow-pulse {
+    animation: tx-glow-pulse 2.8s ease-in-out infinite;
+  }
+
+  @keyframes tx-glow-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 hsl(190 80% 45% / 0.32);
+    }
+    55% {
+      box-shadow: 0 0 0 10px hsl(190 80% 45% / 0);
+    }
   }
 }
 

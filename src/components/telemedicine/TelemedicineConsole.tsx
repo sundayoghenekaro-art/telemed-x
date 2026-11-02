@@ -76,6 +76,7 @@ interface TelemedicineConsoleProps {
   doctorName: string;
   doctorType: 'hospital' | 'external';
   doctorSpecialty?: string;
+  canPrescribe?: boolean;
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -155,7 +156,7 @@ const fmtElapsed = (startedAt: string | null, now: number) => {
 const isJoinable = (s: Session) =>
   ['scheduled', 'waiting', 'active'].includes(s.status);
 
-export function TelemedicineConsole({ doctorUserId, doctorName, doctorType, doctorSpecialty }: TelemedicineConsoleProps) {
+export function TelemedicineConsole({ doctorUserId, doctorName, doctorType, doctorSpecialty, canPrescribe = true }: TelemedicineConsoleProps) {
   const isDemoMode = !UUID_REGEX.test(doctorUserId);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -190,7 +191,8 @@ export function TelemedicineConsole({ doctorUserId, doctorName, doctorType, doct
       .from('telemedicine_sessions')
       .select('*')
       .eq('doctor_user_id', doctorUserId)
-      .order('scheduled_at', { ascending: false });
+      .order('scheduled_at', { ascending: false })
+      .limit(200);
     if (data) setSessions(data as Session[]);
     setLoading(false);
   };
@@ -245,6 +247,7 @@ export function TelemedicineConsole({ doctorUserId, doctorName, doctorType, doct
       .select('id, medication_name, dosage, frequency, duration, instructions, refills, status, created_at')
       .eq('session_id', selectedSession.id)
       .order('created_at', { ascending: false })
+      .limit(50)
       .then(({ data }) => {
         if (!cancelled && data) setPrescriptions(data as SessionPrescription[]);
       });
@@ -711,9 +714,11 @@ export function TelemedicineConsole({ doctorUserId, doctorName, doctorType, doct
                         )}
                         {selectedSession.status === 'active' && (
                           <>
-                            <Button size="sm" variant="outline" onClick={() => setShowPrescription(true)}>
-                              <Pill className="h-4 w-4 mr-1" /> Prescribe
-                            </Button>
+                            {canPrescribe && (
+                              <Button size="sm" variant="outline" onClick={() => setShowPrescription(true)}>
+                                <Pill className="h-4 w-4 mr-1" /> Prescribe
+                              </Button>
+                            )}
                             <Button size="sm" onClick={() => openCompleteDialog(selectedSession)}>
                               <CheckCircle2 className="h-4 w-4 mr-1" /> Complete Visit
                             </Button>
@@ -894,9 +899,11 @@ export function TelemedicineConsole({ doctorUserId, doctorName, doctorType, doct
                             </Badge>
                           )}
                           <div className="ml-auto flex items-center gap-1.5">
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowPrescription(true)}>
-                              <Pill className="h-3.5 w-3.5 mr-1" /> Prescribe
-                            </Button>
+                            {canPrescribe && (
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowPrescription(true)}>
+                                <Pill className="h-3.5 w-3.5 mr-1" /> Prescribe
+                              </Button>
+                            )}
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openCompleteDialog(selectedSession)}>
                               <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Complete
                             </Button>
@@ -984,9 +991,11 @@ export function TelemedicineConsole({ doctorUserId, doctorName, doctorType, doct
                         <Card>
                           <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
                             <CardTitle className="text-sm">Prescriptions</CardTitle>
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowPrescription(true)}>
-                              <Plus className="h-3.5 w-3.5 mr-1" /> New
-                            </Button>
+                            {canPrescribe && (
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowPrescription(true)}>
+                                <Plus className="h-3.5 w-3.5 mr-1" /> New
+                              </Button>
+                            )}
                           </CardHeader>
                           <CardContent className="space-y-2">
                             {prescriptions.length === 0 ? (

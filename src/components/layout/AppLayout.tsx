@@ -138,7 +138,7 @@ export function AppLayout({ children, user, notifications, onLogout }: AppLayout
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 hidden flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 lg:flex',
+          'fixed inset-y-0 left-0 z-50 hidden flex-col border-r border-sidebar-border bg-sidebar/95 backdrop-blur-xl transition-all duration-300 lg:flex',
           sidebarCollapsed ? 'w-[76px]' : 'w-64',
         )}
       >
@@ -276,7 +276,7 @@ export function AppLayout({ children, user, notifications, onLogout }: AppLayout
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-sidebar-border bg-sidebar shadow-2xl transition-transform duration-300 ease-out lg:hidden',
+          'fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-sidebar-border bg-sidebar/95 shadow-2xl backdrop-blur-xl transition-transform duration-300 ease-out lg:hidden',
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full',
         )}
         aria-hidden={!mobileMenuOpen}
@@ -342,11 +342,15 @@ export function AppLayout({ children, user, notifications, onLogout }: AppLayout
       {/* Main */}
       <div
         className={cn(
-          'flex min-h-screen min-w-0 flex-1 flex-col transition-all duration-300',
+          'relative isolate flex min-h-screen min-w-0 flex-1 flex-col transition-all duration-300',
           sidebarCollapsed ? 'lg:ml-[76px]' : 'lg:ml-64',
         )}
       >
-        <header className="sticky top-0 z-30 border-b border-border/70 bg-card/80 backdrop-blur-xl">
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(900px_560px_at_2%_-12%,hsl(198_85%_72%/0.45),transparent_58%),radial-gradient(820px_520px_at_100%_-8%,hsl(172_72%_62%/0.4),transparent_60%),radial-gradient(900px_600px_at_12%_62%,hsl(190_80%_72%/0.22),transparent_64%),radial-gradient(820px_560px_at_92%_82%,hsl(215_85%_74%/0.22),transparent_64%),linear-gradient(165deg,hsl(198_80%_94%),hsl(180_55%_96%)_42%,hsl(215_65%_95%))]"
+        />
+        <header className="sticky top-0 z-30 border-b border-white/50 bg-card/55 backdrop-blur-2xl backdrop-saturate-150 dark:border-white/10">
           <div className="flex h-16 items-center justify-between gap-3 px-4 lg:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <Button

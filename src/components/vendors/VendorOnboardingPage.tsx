@@ -9,8 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Building2, Plus, Loader2, CheckCircle, TestTube, Pill, Scan, Eye, EyeOff, Zap } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Loader2, CheckCircle, TestTube, Pill, Scan, Eye, EyeOff, Zap, MailCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { TelemedXShell } from '@/components/telemedx/TelemedXShell';
 
 const VENDOR_TYPES = [
   { value: 'lab', label: 'Diagnostic Laboratory', icon: TestTube },
@@ -34,6 +35,8 @@ export function VendorOnboardingPage() {
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authName, setAuthName] = useState('');
+  const [authTab, setAuthTab] = useState<'signup' | 'login'>('signup');
+  const [awaitingEmail, setAwaitingEmail] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
@@ -83,15 +86,34 @@ export function VendorOnboardingPage() {
         options: { data: { name: authName || authEmail.split('@')[0], role: 'vendor_admin' } },
       });
       if (error) throw error;
-      if (data.user && !data.session) {
+      if (!data.user) throw new Error('Sign-up did not return an account');
+
+      if (data.user.identities?.length === 0) {
+        setAuthTab('login');
+        toast.error('An account with this email already exists. Sign in instead.');
+        return;
+      }
+
+      if (!data.session) {
+        setAwaitingEmail(authEmail);
         toast.info('Account created. Please check your email to confirm, then sign in.');
-      } else if (data.session) {
+      } else {
         setAuthed(true);
         toast.success('Account created');
       }
     } catch (err: any) {
       console.error('Vendor sign up failed:', err);
-      toast.error('Could not create your account. Please try again.');
+      const message = err?.message ?? '';
+      if (/rate limit/i.test(message)) {
+        toast.error('Sign-up emails are rate limited right now. Please try again later.');
+      } else if (/already registered|already exists/i.test(message)) {
+        setAuthTab('login');
+        toast.error('An account with this email already exists. Sign in instead.');
+      } else {
+        toast.error(message && message.length < 120
+          ? message
+          : 'Could not create your account. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -140,49 +162,38 @@ export function VendorOnboardingPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--gradient-telemedx-hero)' }}>
-        <Card className="max-w-md w-full text-center">
-          <CardContent className="pt-8 pb-8 space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-              <CheckCircle className="h-8 w-8 text-green-500" />
-            </div>
-            <h2 className="text-xl font-bold">Application Submitted!</h2>
-            <p className="text-sm text-muted-foreground">Your vendor application is under review. You'll be notified once verified.</p>
-            <Button variant="outline" onClick={() => navigate('/telemed-x')} className="mt-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />Back to Telemed-X
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <TelemedXShell portal="Partner onboarding" icon={Building2} subtitle="Register your lab, pharmacy or imaging centre" accent="sky" maxWidth="max-w-3xl">
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Card className="glass-panel animate-rise w-full max-w-md text-center">
+            <CardContent className="space-y-4 pb-8 pt-8">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
+                <CheckCircle className="h-8 w-8 text-green-500" />
+              </div>
+              <h2 className="text-xl font-bold">Application Submitted!</h2>
+              <p className="text-sm text-muted-foreground">Your vendor application is under review. You'll be notified once verified.</p>
+              <Button variant="outline" onClick={() => navigate('/telemed-x')} className="mt-4">
+                <ArrowLeft className="h-4 w-4 mr-2" />Back to Telemed-X
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </TelemedXShell>
     );
   }
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--gradient-telemedx-hero)' }}>
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
-      </div>
+      <TelemedXShell portal="Partner onboarding" icon={Building2} accent="sky" maxWidth="max-w-3xl">
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </TelemedXShell>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8" style={{ background: 'var(--gradient-telemedx-hero)' }}>
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="text-white/60 hover:text-white hover:bg-white/10"
-            onClick={() => navigate('/telemed-x')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--gradient-telemedx)' }}>
-              <Building2 className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white">Facility Onboarding</h1>
-              <p className="text-xs text-white/50">Register your lab, pharmacy, or imaging center</p>
-            </div>
-          </div>
-        </div>
+    <TelemedXShell portal="Partner onboarding" icon={Building2} subtitle="Register your lab, pharmacy or imaging centre" accent="sky" maxWidth="max-w-3xl">
+      <div className="animate-rise space-y-6">
 
         {!authed && (
           <Card>
@@ -194,7 +205,28 @@ export function VendorOnboardingPage() {
               <CardDescription>Sign in or create an account to register your facility on Telemed-X</CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="signup">
+              {awaitingEmail ? (
+                <div className="space-y-3 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                    <MailCheck className="h-6 w-6 text-primary" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    We sent a confirmation link to{' '}
+                    <span className="font-medium text-foreground">{awaitingEmail}</span>. Open it, then sign
+                    in to register your facility.
+                  </p>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setAwaitingEmail(null);
+                      setAuthTab('login');
+                    }}
+                  >
+                    Go to sign in
+                  </Button>
+                </div>
+              ) : (
+              <Tabs value={authTab} onValueChange={(value) => setAuthTab(value as 'signup' | 'login')}>
                 <TabsList className="grid grid-cols-2 w-full mb-4">
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
                   <TabsTrigger value="login">Sign In</TabsTrigger>
@@ -255,6 +287,7 @@ export function VendorOnboardingPage() {
                   </form>
                 </TabsContent>
               </Tabs>
+              )}
             </CardContent>
           </Card>
         )}
@@ -384,6 +417,6 @@ export function VendorOnboardingPage() {
           </form>
         )}
       </div>
-    </div>
+    </TelemedXShell>
   );
 }

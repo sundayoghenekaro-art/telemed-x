@@ -1,0 +1,11 @@
+{
+  "target": "http://127.0.0.1:8091",
+  "requests": [
+    {
+      "name": "app-shell",
+      "method": "GET",
+      "path": "/",
+      "weight": 1
+    }
+  ]
+}

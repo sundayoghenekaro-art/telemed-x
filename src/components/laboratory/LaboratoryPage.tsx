@@ -106,111 +106,31 @@ export function LaboratoryPage({
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Clock className="h-5 w-5 text-muted-foreground" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 min-[1800px]:grid-cols-8">
+        {[
+          { label: 'Pending', value: stats.pendingOrders, icon: Clock, iconClass: 'bg-muted text-muted-foreground' },
+          { label: 'Processing', value: stats.inProgressOrders, icon: Activity, iconClass: 'bg-primary/10 text-primary' },
+          { label: 'STAT', value: stats.statOrders, icon: AlertTriangle, iconClass: 'bg-destructive/10 text-destructive' },
+          { label: 'In Lab', value: stats.samplesInLab, icon: Barcode, iconClass: 'bg-info/10 text-info' },
+          { label: 'Validation', value: stats.pendingValidation, icon: FileCheck, iconClass: 'bg-warning/10 text-warning' },
+          { label: 'Completed', value: stats.completedToday, icon: CheckCircle2, iconClass: 'bg-success/10 text-success' },
+          { label: 'Analyzers', value: `${stats.analyzersOnline}/${analyzers.length}`, icon: Cpu, iconClass: 'bg-primary/10 text-primary' },
+          { label: 'Errors', value: stats.analyzerErrors, icon: AlertTriangle, iconClass: 'bg-destructive/10 text-destructive' },
+        ].map(({ label, value, icon: Icon, iconClass }) => (
+          <Card key={label} className={label === 'Errors' && stats.analyzerErrors > 0 ? 'border-destructive/30' : undefined}>
+            <CardContent className="p-3.5">
+              <div className="flex items-center gap-3">
+                <div className={`shrink-0 rounded-lg p-2 ${iconClass}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-2xl font-bold leading-none tabular-nums">{value}</p>
+                  <p className="mt-1.5 whitespace-nowrap text-[11px] leading-none text-muted-foreground">{label}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.pendingOrders}</p>
-                <p className="text-xs text-muted-foreground">Pending</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Activity className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.inProgressOrders}</p>
-                <p className="text-xs text-muted-foreground">Processing</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.statOrders}</p>
-                <p className="text-xs text-muted-foreground">STAT</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-info/10">
-                <Barcode className="h-5 w-5 text-info" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.samplesInLab}</p>
-                <p className="text-xs text-muted-foreground">In Lab</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-warning/10">
-                <FileCheck className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.pendingValidation}</p>
-                <p className="text-xs text-muted-foreground">Validation</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/10">
-                <CheckCircle2 className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.completedToday}</p>
-                <p className="text-xs text-muted-foreground">Completed</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Cpu className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.analyzersOnline}/{analyzers.length}</p>
-                <p className="text-xs text-muted-foreground">Analyzers</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className={stats.analyzerErrors > 0 ? 'border-destructive/30' : ''}>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.analyzerErrors}</p>
-                <p className="text-xs text-muted-foreground">Errors</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Main Content Tabs */}

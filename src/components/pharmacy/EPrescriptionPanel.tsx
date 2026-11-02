@@ -23,9 +23,9 @@ const STATUS_STYLE: Record<Eprescription['status'], string> = {
   cancelled: 'bg-destructive/10 text-destructive border-destructive/30',
 };
 
-const euro = new Intl.NumberFormat('de-DE', {
+const naira = new Intl.NumberFormat('en-NG', {
   style: 'currency',
-  currency: 'EUR',
+  currency: 'NGN',
   maximumFractionDigits: 2,
 });
 
@@ -87,8 +87,8 @@ export function EPrescriptionPanel({
     );
     toast.success('Dispensed and reported to eDispense', {
       description: substituted
-        ? `${rx.medication} substituted within the reference price group · ${euro.format(price)}`
-        : `${rx.medication} · ${euro.format(price)}`,
+        ? `${rx.medication} substituted within the reference price group · ${naira.format(price)}`
+        : `${rx.medication} · ${naira.format(price)}`,
     });
   };
 
@@ -125,7 +125,7 @@ export function EPrescriptionPanel({
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-xl font-bold leading-tight">{euro.format(stats.savings)}</p>
+            <p className="text-xl font-bold leading-tight">{naira.format(stats.savings)}</p>
             <p className="text-xs text-muted-foreground">Reference-price savings</p>
           </CardContent>
         </Card>
@@ -165,11 +165,11 @@ export function EPrescriptionPanel({
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-                <span>Brand {euro.format(rx.brandPrice)}</span>
-                <span>Reference {euro.format(rx.referencePrice)}</span>
+                <span>Brand {naira.format(rx.brandPrice)}</span>
+                <span>Reference {naira.format(rx.referencePrice)}</span>
                 {rx.brandPrice > rx.referencePrice && (
                   <span className="text-warning">
-                    {euro.format(rx.brandPrice - rx.referencePrice)} above reference
+                    {naira.format(rx.brandPrice - rx.referencePrice)} above reference
                   </span>
                 )}
               </div>
@@ -180,7 +180,7 @@ export function EPrescriptionPanel({
                     <Store className="h-3 w-3" /> {rx.dispense.pharmacy}
                   </p>
                   <p className="text-muted-foreground">
-                    {rx.dispense.product} · {euro.format(rx.dispense.price)} ·{' '}
+                    {rx.dispense.product} · {naira.format(rx.dispense.price)} ·{' '}
                     {format(new Date(rx.dispense.dispensedAt), 'dd MMM yyyy HH:mm')}
                   </p>
                 </div>

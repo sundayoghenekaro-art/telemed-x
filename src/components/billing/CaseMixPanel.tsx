@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
+  Banknote,
   Boxes,
-  CircleDollarSign,
   Download,
   FileCheck2,
   Layers,
@@ -14,9 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InpatientCase, mockInpatientCases } from '@/data/europeMockData';
 import { cn } from '@/lib/utils';
 
-const euro = new Intl.NumberFormat('de-DE', {
+const naira = new Intl.NumberFormat('en-NG', {
   style: 'currency',
-  currency: 'EUR',
+  currency: 'NGN',
   maximumFractionDigits: 0,
 });
 
@@ -72,7 +72,7 @@ export function CaseMixPanel({
       prev.map((item) => (item.id === entry.id ? { ...item, status: 'grouped' } : item)),
     );
     toast.success('Case grouped', {
-      description: `${entry.id} → ${entry.drg} · weight ${entry.weight.toFixed(3)} · ${euro.format(entry.weight * entry.baseRate)}`,
+      description: `${entry.id} → ${entry.drg} · weight ${entry.weight.toFixed(3)} · ${naira.format(entry.weight * entry.baseRate)}`,
     });
   };
 
@@ -81,7 +81,7 @@ export function CaseMixPanel({
       prev.map((item) => (item.id === entry.id ? { ...item, status: 'claimed' } : item)),
     );
     toast.success('Case added to the claim file', {
-      description: `${entry.id} · ${entry.insurer} · ${euro.format(entry.weight * entry.baseRate)}`,
+      description: `${entry.id} · ${entry.insurer} · ${naira.format(entry.weight * entry.baseRate)}`,
     });
   };
 
@@ -106,14 +106,14 @@ export function CaseMixPanel({
   const exportClaim = () => {
     downloadJson('drg-claim-2026-11.json', claimFile);
     toast.success('Claim file exported', {
-      description: `${claimFile.cases.length} cases · ${euro.format(totals.claimValue)} · DRG-2026-11`,
+      description: `${claimFile.cases.length} cases · ${naira.format(totals.claimValue)} · DRG-2026-11`,
     });
   };
 
   const submitClaim = () => {
     setClaimSubmittedAt(new Date().toISOString());
     toast.success('Claim file submitted to insurers', {
-      description: `DRG-2026-11 · ${claimFile.cases.length} cases · ${euro.format(totals.claimValue)}`,
+      description: `DRG-2026-11 · ${claimFile.cases.length} cases · ${naira.format(totals.claimValue)}`,
     });
   };
 
@@ -150,7 +150,7 @@ export function CaseMixPanel({
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-xl font-bold leading-tight">{euro.format(totals.claimValue)}</p>
+            <p className="text-xl font-bold leading-tight">{naira.format(totals.claimValue)}</p>
             <p className="text-xs text-muted-foreground">Claim value</p>
           </CardContent>
         </Card>
@@ -194,8 +194,8 @@ export function CaseMixPanel({
                 </div>
                 <div className="mt-2 flex flex-col gap-2 border-t border-border pt-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[11px] text-muted-foreground">
-                    {entry.drgLabel} · weight {entry.weight.toFixed(3)} × base rate {euro.format(entry.baseRate)} ={' '}
-                    <span className="font-semibold text-foreground">{euro.format(tariff)}</span>
+                    {entry.drgLabel} · weight {entry.weight.toFixed(3)} × base rate {naira.format(entry.baseRate)} ={' '}
+                    <span className="font-semibold text-foreground">{naira.format(tariff)}</span>
                   </p>
                   <div className="flex gap-1.5">
                     {entry.status === 'coded' && (
@@ -215,7 +215,7 @@ export function CaseMixPanel({
                         disabled={!canManage}
                         onClick={() => claim(entry)}
                       >
-                        <CircleDollarSign className="h-3 w-3" /> Add to claim
+                        <Banknote className="h-3 w-3" /> Add to claim
                       </Button>
                     )}
                     {entry.status === 'claimed' && (
@@ -250,11 +250,11 @@ export function CaseMixPanel({
             </div>
             <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Claim value</p>
-              <p className="text-lg font-bold">{euro.format(totals.claimValue)}</p>
+              <p className="text-lg font-bold">{naira.format(totals.claimValue)}</p>
             </div>
             <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Grouped, not filed</p>
-              <p className="text-lg font-bold text-warning">{euro.format(totals.pendingValue)}</p>
+              <p className="text-lg font-bold text-warning">{naira.format(totals.pendingValue)}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">

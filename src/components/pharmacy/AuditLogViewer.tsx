@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { ShieldAlert, Clock, User, Pill, AlertTriangle, Download, CalendarIcon, X, Search } from 'lucide-react';
+import { ShieldAlert, Clock, User, Pill, AlertTriangle, Download, CalendarIcon, X, Search, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface AllergyOverrideEntry {
@@ -24,6 +24,9 @@ export interface AllergyOverrideEntry {
 
 interface AuditLogViewerProps {
   entries: AllergyOverrideEntry[];
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 function exportToCsv(entries: AllergyOverrideEntry[]) {
@@ -50,7 +53,7 @@ function exportToCsv(entries: AllergyOverrideEntry[]) {
   URL.revokeObjectURL(url);
 }
 
-export function AuditLogViewer({ entries }: AuditLogViewerProps) {
+export function AuditLogViewer({ entries, hasMore = false, loadingMore = false, onLoadMore }: AuditLogViewerProps) {
   const [fromDate, setFromDate] = useState<Date | undefined>();
   const [toDate, setToDate] = useState<Date | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
@@ -284,6 +287,13 @@ export function AuditLogViewer({ entries }: AuditLogViewerProps) {
                   </div>
                 </div>
               ))}
+              {hasMore && onLoadMore && (
+                <div className="pt-2 text-center">
+                  <Button variant="outline" size="sm" onClick={onLoadMore} disabled={loadingMore}>
+                    {loadingMore ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Loading…</> : 'Load older entries'}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </ScrollArea>

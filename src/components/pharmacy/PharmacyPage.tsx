@@ -64,7 +64,7 @@ export function PharmacyPage({
   const [activeTab, setActiveTab] = useState('prescriptions');
   const [interactionDrugs, setInteractionDrugs] = useState<{ name: string; id: string }[]>([]);
   const [drugSearchQuery, setDrugSearchQuery] = useState('');
-  const { auditLog, addAuditEntry } = useAuditLog();
+  const { auditLog, addAuditEntry, hasMore: auditHasMore, loadingMore: auditLoadingMore, loadMore: loadMoreAudit } = useAuditLog();
 
   const handleAllergyOverride = useCallback((
     rxId: string, patientName: string, medications: string[], allergies: string[],
@@ -322,7 +322,7 @@ export function PharmacyPage({
         </TabsContent>
 
         <TabsContent value="audit" className="mt-6">
-          <AuditLogViewer entries={auditLog} />
+          <AuditLogViewer entries={auditLog} hasMore={auditHasMore} loadingMore={auditLoadingMore} onLoadMore={loadMoreAudit} />
         </TabsContent>
 
         <TabsContent value="interactions" className="mt-6">

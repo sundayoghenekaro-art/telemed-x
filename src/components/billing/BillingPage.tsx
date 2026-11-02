@@ -14,11 +14,13 @@ import { mockInvoices, mockPayments, mockInsuranceClaims, type Invoice, type Pay
 
 export function BillingPage({
   canManage = false,
+  canCreateInvoice = false,
   canCheckInsurance = false,
   canSettleInsurance = false,
   canRecordPayment = false,
 }: {
   canManage?: boolean;
+  canCreateInvoice?: boolean;
   canCheckInsurance?: boolean;
   canSettleInsurance?: boolean;
   canRecordPayment?: boolean;
@@ -155,7 +157,7 @@ export function BillingPage({
         </TabsList>
 
         <TabsContent value="invoices">
-          <InvoiceManagement invoices={invoices} canManage={canManage} onAddInvoice={handleAddInvoice} onRecordPayment={handleRecordPayment} />
+          <InvoiceManagement invoices={invoices} canManage={canManage} canCreateInvoice={canCreateInvoice} onAddInvoice={handleAddInvoice} onRecordPayment={handleRecordPayment} />
         </TabsContent>
         <TabsContent value="payments">
           <PaymentTracking payments={payments} />

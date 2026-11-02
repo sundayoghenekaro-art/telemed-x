@@ -16,6 +16,7 @@ import type { Invoice, Payment } from '@/data/billingMockData';
 interface InvoiceManagementProps {
   invoices: Invoice[];
   canManage?: boolean;
+  canCreateInvoice?: boolean;
   onAddInvoice: (invoice: Invoice) => void;
   onRecordPayment: (payment: Payment, invoiceId: string) => void;
 }
@@ -40,10 +41,10 @@ const categoryLabels: Record<string, string> = {
 };
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
 }
 
-export function InvoiceManagement({ invoices, canManage = false, onAddInvoice, onRecordPayment }: InvoiceManagementProps) {
+export function InvoiceManagement({ invoices, canManage = false, canCreateInvoice = false, onAddInvoice, onRecordPayment }: InvoiceManagementProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -104,7 +105,7 @@ export function InvoiceManagement({ invoices, canManage = false, onAddInvoice, o
             <SelectItem value="overdue">Overdue</SelectItem>
           </SelectContent>
         </Select>
-        {canManage && (
+        {canCreateInvoice && (
           <Button onClick={() => setShowNewDialog(true)} className="gap-2">
             <Plus className="h-4 w-4" /> New Invoice
           </Button>

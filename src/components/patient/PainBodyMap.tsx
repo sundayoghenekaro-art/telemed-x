@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { lazy, Suspense, useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import { User, Trash2, Save, RotateCcw, Loader2, Pencil, MousePointer, Eye, EyeOff } from 'lucide-react';
+import { User, Trash2, Save, RotateCcw, Loader2, Pencil, MousePointer, Eye, EyeOff, Rotate3d, Map as MapIcon, Mic, Square } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { usePrefersReducedMotion } from '@/lib/motion';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
+import type { PainMap3DPick, PainMap3DPoint } from './PainMap3D';
+
+const PainMap3D = lazy(() => import('./PainMap3D'));
 
 interface PainPoint {
   id: string;
@@ -18,6 +23,7 @@ interface PainPoint {
   y: number;
   label: string;
   severity: 'mild' | 'moderate' | 'severe';
+  position3d?: [number, number, number];
 }
 
 interface DrawPath {
@@ -105,7 +111,15 @@ export function PainBodyMap({ patientUserId, gender }: PainBodyMapProps) {
     gender === 'female' ? 'female' : gender === 'male' ? 'male' : 'male'
   );
   const [showLabels, setShowLabels] = useState(true);
+  const [presentation, setPresentation] = useState<'3d' | '2d'>('3d');
+  const prefersReducedMotion = usePrefersReducedMotion();
   const svgRef = useRef<SVGSVGElement>(null);
+
+  const voice = useVoiceInput(
+    useCallback((text: string) => {
+      setNotes(prev => (prev.trim() ? `${prev.trimEnd()} ${text}` : text));
+    }, []),
+  );
 
   const getSvgCoords = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!svgRef.current) return null;
@@ -139,8 +153,35 @@ export function PainBodyMap({ patientUserId, gender }: PainBodyMapProps) {
     setPainPoints(prev => [...prev, newPoint]);
   }, [mode, severity, getSvgCoords, view]);
 
-  const handlePointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (mode !== 'draw') return;
+  const handle3DPick = useCallback((pick: PainMap3DPick) => {
+    setPainPoints(prev => [
+      ...prev,
+      {
+        id: `p-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        x: 0,
+        y: 0,
+        label: pick.label,
+        severity,
+        position3d: pick.position,
+      },
+    ]);
+  }, [severity]);
+
+  const handle3DSelect = (id: string) => {
+    const found = painPoints.find(point => point.id === id);
+    if (found) setSelectedPoint(found);
+  };
+
+  const points3D: PainMap3DPoint[] = painPoints
+    .filter((point): point is PainPoint & { position3d: [number, number, number] } => Boolean(point.position3d))
+    .map(point => ({
+      id: point.id,
+      label: point.label,
+      severity: point.severity,
+      position3d: point.position3d,
+    }));
+
+  const handlePointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {    if (mode !== 'draw') return;
     e.preventDefault();
     const coords = getSvgCoords(e);
     if (!coords) return;
@@ -173,6 +214,7 @@ export function PainBodyMap({ patientUserId, gender }: PainBodyMapProps) {
   }, [drawing, currentPath, severity]);
 
   const clearAll = () => {
+    voice.stop();
     setPainPoints([]);
     setDrawPaths([]);
     setNotes('');
@@ -189,6 +231,7 @@ export function PainBodyMap({ patientUserId, gender }: PainBodyMapProps) {
       return;
     }
     setSaving(true);
+    voice.stop();
     try {
       await supabase.from('patient_medical_records').insert({
         patient_user_id: patientUserId,
@@ -221,30 +264,51 @@ export function PainBodyMap({ patientUserId, gender }: PainBodyMapProps) {
         </div>
         <div>
           <h2 className="font-bold text-lg text-foreground">Pain Body Map</h2>
-          <p className="text-xs text-muted-foreground">Tap or draw on the body to mark where you feel pain</p>
+          <p className="text-xs text-muted-foreground">Rotate the 3D body and tap where it hurts — or switch to the 2D map to draw</p>
         </div>
       </div>
 
       {/* Controls */}
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex rounded-lg overflow-hidden border border-border">
+        <div className="flex rounded-lg overflow-hidden border border-white/60 bg-white/55 p-0.5 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
           <button
-            onClick={() => setMode('tap')}
-            className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition ${
-              mode === 'tap' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+            onClick={() => setPresentation('3d')}
+            className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 rounded-md transition ${
+              presentation === '3d' ? 'bg-slate-900 text-cyan-100 shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <MousePointer className="h-3 w-3" /> Tap
+            <Rotate3d className="h-3 w-3" /> 3D
           </button>
           <button
-            onClick={() => setMode('draw')}
-            className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition ${
-              mode === 'draw' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+            onClick={() => setPresentation('2d')}
+            className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 rounded-md transition ${
+              presentation === '2d' ? 'bg-slate-900 text-cyan-100 shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Pencil className="h-3 w-3" /> Draw
+            <MapIcon className="h-3 w-3" /> 2D
           </button>
         </div>
+
+        {presentation === '2d' && (
+          <div className="flex rounded-lg overflow-hidden border border-white/60 bg-white/55 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
+            <button
+              onClick={() => setMode('tap')}
+              className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition ${
+                mode === 'tap' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <MousePointer className="h-3 w-3" /> Tap
+            </button>
+            <button
+              onClick={() => setMode('draw')}
+              className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition ${
+                mode === 'draw' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Pencil className="h-3 w-3" /> Draw
+            </button>
+          </div>
+        )}
 
         <Select value={severity} onValueChange={(v: any) => setSeverity(v)}>
           <SelectTrigger className="w-32 h-8 text-xs">
@@ -258,7 +322,7 @@ export function PainBodyMap({ patientUserId, gender }: PainBodyMapProps) {
         </Select>
 
         {/* Gender toggle */}
-        <div className="flex rounded-lg overflow-hidden border border-border">
+        <div className="flex rounded-lg overflow-hidden border border-white/60 bg-white/55 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
           <button
             onClick={() => setBodyGender('male')}
             className={`px-3 py-1.5 text-xs font-medium transition ${
@@ -277,33 +341,37 @@ export function PainBodyMap({ patientUserId, gender }: PainBodyMapProps) {
           </button>
         </div>
 
-        {/* Front / Back toggle */}
-        <div className="flex rounded-lg overflow-hidden border border-border">
-          <button
-            onClick={() => setView('front')}
-            className={`px-3 py-1.5 text-xs font-medium transition ${
-              view === 'front' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Front
-          </button>
-          <button
-            onClick={() => setView('back')}
-            className={`px-3 py-1.5 text-xs font-medium transition ${
-              view === 'back' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Back
-          </button>
-        </div>
+        {/* Front / Back toggle — 2D only, the 3D body rotates instead */}
+        {presentation === '2d' && (
+          <div className="flex rounded-lg overflow-hidden border border-white/60 bg-white/55 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
+            <button
+              onClick={() => setView('front')}
+              className={`px-3 py-1.5 text-xs font-medium transition ${
+                view === 'front' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Front
+            </button>
+            <button
+              onClick={() => setView('back')}
+              className={`px-3 py-1.5 text-xs font-medium transition ${
+                view === 'back' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Back
+            </button>
+          </div>
+        )}
 
-        <button
-          onClick={() => setShowLabels(!showLabels)}
-          className="px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition flex items-center gap-1"
-          title="Toggle region labels"
-        >
-          {showLabels ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-        </button>
+        {presentation === '2d' && (
+          <button
+            onClick={() => setShowLabels(!showLabels)}
+            className="px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition flex items-center gap-1"
+            title="Toggle region labels"
+          >
+            {showLabels ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+          </button>
+        )}
 
         <Button size="sm" variant="ghost" onClick={clearAll} className="text-muted-foreground hover:text-foreground ml-auto">
           <RotateCcw className="h-3 w-3 mr-1" /> Clear
@@ -311,7 +379,39 @@ export function PainBodyMap({ patientUserId, gender }: PainBodyMapProps) {
       </div>
 
       {/* Body Map */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-white/50">
+        {presentation === '3d' ? (
+          <CardContent className="p-0">
+            <div className="relative h-[460px] w-full overflow-hidden bg-[radial-gradient(circle_at_50%_0%,#0f5a6e_0%,#082b40_45%,#03101c_100%)] sm:h-[540px]">
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-grid-dark opacity-30" />
+              <div aria-hidden className="pointer-events-none absolute inset-x-10 bottom-6 h-24 rounded-[50%] bg-cyan-400/20 blur-3xl" />
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center gap-2 text-xs text-cyan-200/70">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Preparing 3D body…
+                  </div>
+                }
+              >
+                <PainMap3D
+                  gender={bodyGender}
+                  points={points3D}
+                  selectedId={selectedPoint?.id ?? null}
+                  autoRotate={!prefersReducedMotion}
+                  onPick={handle3DPick}
+                  onSelect={handle3DSelect}
+                />
+              </Suspense>
+              <div className="pointer-events-none absolute bottom-7 left-3 space-y-1">
+                {(['mild', 'moderate', 'severe'] as const).map(level => (
+                  <div key={level} className="flex items-center gap-1.5 text-[10px] capitalize text-cyan-100/70">
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: SEVERITY_COLORS[level].dot }} />
+                    {level}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        ) : (
         <CardContent className="p-4 flex flex-col items-center">
           <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider">
             {bodyGender === 'male' ? 'Male' : 'Female'} • {view === 'front' ? 'Front View' : 'Back View'}
@@ -414,6 +514,7 @@ export function PainBodyMap({ patientUserId, gender }: PainBodyMapProps) {
             ))}
           </svg>
         </CardContent>
+        )}
       </Card>
 
       {/* Pain points summary */}
@@ -440,13 +541,45 @@ export function PainBodyMap({ patientUserId, gender }: PainBodyMapProps) {
       {/* Notes & Save */}
       <Card>
         <CardContent className="p-4 space-y-3">
-          <Label className="text-muted-foreground text-sm">Additional Notes</Label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label htmlFor="pain-notes" className="text-muted-foreground text-sm">Additional Notes</Label>
+            {voice.supported && (
+              <Button
+                type="button"
+                size="sm"
+                variant={voice.listening ? 'destructive' : 'outline'}
+                onClick={voice.toggle}
+                aria-pressed={voice.listening}
+                className="gap-1.5"
+                title={voice.listening ? 'Stop voice description' : 'Describe your pain by speaking'}
+              >
+                {voice.listening ? <Square className="h-3.5 w-3.5 fill-current" /> : <Mic className="h-3.5 w-3.5" />}
+                {voice.listening ? 'Stop dictation' : 'Describe by voice'}
+              </Button>
+            )}
+          </div>
           <Textarea
+            id="pain-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Describe the pain (e.g., sharp, dull, throbbing, constant, intermittent)..."
+            aria-describedby={voice.listening ? 'pain-notes-voice' : undefined}
             rows={3}
           />
+          {voice.listening ? (
+            <div
+              id="pain-notes-voice"
+              aria-live="polite"
+              className="flex items-start gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-xs"
+            >
+              <span className="mt-0.5 h-2 w-2 shrink-0 animate-pulse rounded-full bg-destructive" />
+              <span className="text-muted-foreground">
+                {voice.interim || 'Listening… describe your pain in your own words.'}
+              </span>
+            </div>
+          ) : voice.error ? (
+            <p role="alert" className="text-xs text-destructive">{voice.error}</p>
+          ) : null}
           <Button onClick={saveReport} disabled={saving} className="w-full">
             {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Save Pain Report

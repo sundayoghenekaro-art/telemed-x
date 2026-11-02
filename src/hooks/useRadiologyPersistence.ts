@@ -56,9 +56,11 @@ export function useRadiologyPersistence() {
   // Load from DB on mount
   useEffect(() => {
     async function load() {
+      // Bounded to the recent window the worklist shows; the dashboard never
+      // needed the full history and the unbounded read grew with the table.
       const [reportsRes, notificationsRes] = await Promise.all([
-        supabase.from('radiology_reports').select('*').order('created_at', { ascending: false }),
-        supabase.from('critical_finding_notifications').select('*').order('created_at', { ascending: false }),
+        supabase.from('radiology_reports').select('*').order('created_at', { ascending: false }).limit(200),
+        supabase.from('critical_finding_notifications').select('*').order('created_at', { ascending: false }).limit(200),
       ]);
 
       if (reportsRes.data && reportsRes.data.length > 0) {

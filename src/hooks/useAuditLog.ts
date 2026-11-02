@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AllergyOverrideEntry } from '@/components/pharmacy/AuditLogViewer';
 import { toast } from 'sonner';
+import { PAGE_SIZE, afterCursor, hasNextPage, pageCursor, type PageCursor } from '@/lib/pagination';
 
 interface AuditLogRow {
   id: string;
@@ -32,25 +33,49 @@ function rowToEntry(row: AuditLogRow): AllergyOverrideEntry {
 export function useAuditLog() {
   const [auditLog, setAuditLog] = useState<AllergyOverrideEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<PageCursor | null>(null);
+  const [hasMore, setHasMore] = useState(false);
 
-  const fetchAuditLog = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('allergy_override_audit_log')
-      .select('*')
-      .order('timestamp', { ascending: false });
+  const fetchAuditLog = useCallback(async (mode: 'replace' | 'append' = 'replace') => {
+    const cursorForPage = mode === 'append' ? cursor : null;
+    if (mode === 'append' && !cursorForPage) return;
+
+    if (mode === 'append') setLoadingMore(true);
+    else setLoading(true);
+
+    const { data, error } = await afterCursor(
+      supabase
+        .from('allergy_override_audit_log')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .order('id', { ascending: false }),
+      cursorForPage,
+      'timestamp',
+    ).limit(PAGE_SIZE + 1);
 
     if (error) {
       console.error('Failed to fetch audit log:', error);
       toast.error('Failed to load audit log');
     } else if (data) {
-      setAuditLog((data as unknown as AuditLogRow[]).map(rowToEntry));
+      const rows = data as unknown as AuditLogRow[];
+      const page = rows.slice(0, PAGE_SIZE);
+      const entries = page.map(rowToEntry);
+      setAuditLog(prev => (mode === 'append' ? [...prev, ...entries] : entries));
+      setHasMore(hasNextPage(rows));
+      setCursor(pageCursor(page, 'timestamp'));
     }
-    setLoading(false);
-  }, []);
+
+    if (mode === 'append') setLoadingMore(false);
+    else setLoading(false);
+  }, [cursor]);
 
   useEffect(() => {
-    fetchAuditLog();
-  }, [fetchAuditLog]);
+    fetchAuditLog('replace');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadMore = useCallback(() => fetchAuditLog('append'), [fetchAuditLog]);
 
   const addAuditEntry = useCallback(async (
     rxId: string,
@@ -99,5 +124,5 @@ export function useAuditLog() {
     }
   }, []);
 
-  return { auditLog, loading, addAuditEntry };
+  return { auditLog, loading, loadingMore, hasMore, loadMore, addAuditEntry };
 }

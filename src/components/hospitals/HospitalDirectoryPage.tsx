@@ -103,65 +103,73 @@ export function HospitalDirectoryPage() {
   const allInsurances = [...new Set(hospitals.flatMap(h => h.accepted_insurance || []))].sort();
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--gradient-telemedx-hero)' }}>
+    <div className="relative min-h-screen overflow-hidden" style={{ background: 'var(--gradient-telemedx-hero)' }}>
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-grid-dark opacity-50" />
+        <div className="absolute -left-32 top-10 h-72 w-72 animate-aurora rounded-full bg-sky-400/15 blur-[110px]" />
+        <div className="absolute -right-24 top-1/3 h-80 w-80 animate-aurora rounded-full bg-teal-400/15 blur-[120px] [animation-delay:-9s]" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 animate-aurora rounded-full bg-emerald-400/10 blur-[120px] [animation-delay:-15s]" />
+      </div>
+
       {/* Header */}
-      <header className="border-b border-white/10 backdrop-blur-md sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-white/60 hover:text-white hover:bg-white/10"
+      <header className="glass-dark animate-header-in sticky top-0 z-20">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-white/60 hover:bg-white/10 hover:text-white"
               onClick={() => navigate('/telemed-x')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--gradient-telemedx)' }}>
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: 'var(--gradient-telemedx)' }}>
                 <Building2 className="h-4 w-4 text-white" />
               </div>
-              <div>
-                <h1 className="text-base font-bold text-white">Hospital Directory</h1>
-                <p className="text-xs text-white/50">Browse verified healthcare institutions</p>
+              <div className="min-w-0">
+                <h1 className="truncate text-sm font-bold text-white sm:text-base">Hospital Directory</h1>
+                <p className="hidden truncate text-xs text-white/50 sm:block">Browse verified healthcare institutions</p>
               </div>
             </div>
           </div>
-          <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+          <Button variant="outline" size="sm" className="shrink-0 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white sm:h-10 sm:px-4"
             onClick={() => navigate('/telemed-x/hospital-onboarding')}>
-            <Building2 className="h-4 w-4 mr-2" />
-            Register Your Hospital
+            <Building2 className="mr-1.5 h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Register Your Hospital</span>
+            <span className="sm:hidden">Register</span>
           </Button>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+      <div className="relative z-10 mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         {/* Search & Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="glass-dark animate-rise grid grid-cols-1 gap-3 rounded-2xl p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
           <div className="relative lg:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
             <Input placeholder="Search hospitals, cities, or specialties..."
               value={search} onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40" />
+              className="h-10 border-white/15 bg-white/10 pl-10 text-white transition placeholder:text-white/40 focus:border-[#5eead4]/60 focus:bg-white/15" />
           </div>
           <div className="relative">
             <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 pointer-events-none" />
             <Input placeholder="Insurance..."
               value={insuranceFilter} onChange={(e) => setInsuranceFilter(e.target.value)}
-              className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40" />
+              className="h-10 border-white/15 bg-white/10 pl-10 text-white transition placeholder:text-white/40 focus:border-[#5eead4]/60 focus:bg-white/15" />
           </div>
           <div>
             <select value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}
-              className="w-full h-10 rounded-md bg-white/10 border border-white/20 text-white px-3 text-sm">
+              className="w-full h-10 rounded-md bg-white/10 border border-white/15 text-white px-3 text-sm transition hover:bg-white/15 focus:border-[#5eead4]/60">
               <option value="" className="bg-slate-900">All Locations</option>
               {allStates.map(s => <option key={s} value={s} className="bg-slate-900">{s}</option>)}
             </select>
           </div>
           <div>
             <select value={specialtyFilter} onChange={(e) => setSpecialtyFilter(e.target.value)}
-              className="w-full h-10 rounded-md bg-white/10 border border-white/20 text-white px-3 text-sm">
+              className="w-full h-10 rounded-md bg-white/10 border border-white/15 text-white px-3 text-sm transition hover:bg-white/15 focus:border-[#5eead4]/60">
               <option value="" className="bg-slate-900">All Specialties</option>
               {allSpecialties.map(s => <option key={s} value={s} className="bg-slate-900">{s}</option>)}
             </select>
           </div>
           <div>
             <select value={languageFilter} onChange={(e) => setLanguageFilter(e.target.value)}
-              className="w-full h-10 rounded-md bg-white/10 border border-white/20 text-white px-3 text-sm">
+              className="w-full h-10 rounded-md bg-white/10 border border-white/15 text-white px-3 text-sm transition hover:bg-white/15 focus:border-[#5eead4]/60">
               <option value="" className="bg-slate-900">All Languages</option>
               {allLanguages.map(l => <option key={l} value={l} className="bg-slate-900">{l}</option>)}
             </select>
@@ -176,19 +184,22 @@ export function HospitalDirectoryPage() {
             <div className="h-8 w-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-20">
-            <Building2 className="h-12 w-12 mx-auto text-white/20 mb-4" />
-            <p className="text-white/50">No hospitals match your search</p>
+          <div className="glass-dark animate-rise space-y-3 rounded-2xl py-20 text-center">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
+              <Building2 className="h-7 w-7 text-white/40" />
+            </span>
+            <p className="text-white/60">No hospitals match your search</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(hospital => (
+            {filtered.map((hospital, index) => (
               <Card key={hospital.id}
-                className="border-white/10 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-all cursor-pointer"
+                className="tx-hover animate-rise group cursor-pointer border-white/10 bg-white/[0.06] backdrop-blur-sm hover:border-[#5eead4]/35 hover:bg-white/10"
+                style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}
                 onClick={() => openHospital(hospital)}>
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="h-11 w-11 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/20 ring-1 ring-white/10 transition group-hover:bg-primary/25">
                       <Building2 className="h-5 w-5 text-primary" />
                     </div>
                     <div className="min-w-0">
@@ -237,7 +248,7 @@ export function HospitalDirectoryPage() {
 
       {/* Hospital Detail Dialog */}
       <Dialog open={!!selectedHospital} onOpenChange={() => setSelectedHospital(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto border-white/70 bg-white/90 backdrop-blur-2xl shadow-float">
           {selectedHospital && (
             <>
               <DialogHeader>
@@ -329,7 +340,7 @@ export function HospitalDirectoryPage() {
                   ) : (
                     <div className="space-y-2">
                       {doctors.map(d => (
-                        <div key={d.id} className="flex items-center gap-3 p-3 rounded-lg border">
+                        <div key={d.id} className="flex items-center gap-3 rounded-lg border border-border/70 bg-white/60 p-3 transition hover:border-primary/30 hover:bg-white/80">
                           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                             <Stethoscope className="h-4 w-4 text-primary" />
                           </div>
